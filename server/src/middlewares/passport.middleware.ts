@@ -2,8 +2,12 @@ import { SLACK_CLIENT_ID, SLACK_CLIENT_SECRET } from '@config';
 
 import passport from 'passport';
 import express from 'express';
+import IncomingWebhookModel from '@/models/incomingWebhook.model';
+import { IncomingWebhook } from '@/interfaces/incoming-webhook.interface';
+import { logger } from '@/utils/logger';
 
 const SlackStrategy = require('passport-slack').Strategy;
+
 interface Params {
   ok: true;
   access_token: string;
@@ -23,16 +27,36 @@ const init = (app: express.Application) => {
   passport.use(
     new SlackStrategy(
       {
-        name: 'slack',
+        name: 'webhook',
         clientID: SLACK_CLIENT_ID,
         clientSecret: SLACK_CLIENT_SECRET,
         scope: ['incoming-webhook'],
         skipUserProfile: true,
         passReqToCallback: true,
-        callbackURL: '/api/slack/auth/callback',
+        callbackURL: '/api/slack/webhook/auth/callback',
       },
-      (req: express.Request, accessToken: string, refreshToken: string, params: Params, profile, done) => {
-        done(null, profile);
+      async (req: express.Request, accessToken: string, refreshToken: string, params: Params, profile, done) => {
+        try {
+          let buff = Buffer.from(String(req.query.state), 'base64');
+          const { n: networkId } = JSON.parse(buff.toString('ascii')) as { n: string };
+          const webhook: IncomingWebhook = await IncomingWebhookModel.create({
+            channel: params?.incoming_webhook?.channel,
+            channelId: params?.incoming_webhook?.channel_id,
+            url: params?.incoming_webhook?.url,
+            configUrl: params?.incoming_webhook?.configuration_url,
+            scope: params?.scope,
+            accessToken: params?.access_token,
+            userId: params?.user_id,
+            teamId: params?.team_id,
+            teamName: params?.team_name,
+            networkId,
+          });
+          done(null, webhook);
+        } catch (err) {
+          logger.error('An error occured during the SlackStrategy handling');
+          logger.error(err);
+          done(err, {});
+        }
       },
     ),
   );

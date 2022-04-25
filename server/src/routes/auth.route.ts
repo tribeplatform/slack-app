@@ -13,8 +13,10 @@ class AuthRoute implements Routes {
   }
 
   private initializeRoutes() {
-    this.router.get(`${this.path}/auth`, passport.authorize('slack'));
-    this.router.get(`${this.path}/auth/callback`, passport.authorize('slack', { failureRedirect: '/login' }), this.authController.callback);
+    const webhookPath = `${this.path}/webhook`
+    this.router.get(`${webhookPath}/auth`, this.authController.webhookAuth);
+    this.router.get(`${webhookPath}/auth/callback/failure`, this.authController.webhookAuthFailure);
+    this.router.get(`${webhookPath}/auth/callback`, passport.authorize('webhook', { failureRedirect: `${this.path}/auth/callback/failure` }), this.authController.webhookAuthCallback);
   }
 }
 
