@@ -3,9 +3,9 @@ import { SLACK_CLIENT_ID, SLACK_CLIENT_SECRET } from '@config';
 import passport from 'passport';
 import express from 'express';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
-import { IncomingWebhook } from '@/interfaces/incoming-webhook.interface';
+import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 import { logger } from '@/utils/logger';
-
+import SlackService from '@/services/slack.services';
 const SlackStrategy = require('passport-slack').Strategy;
 
 interface Params {
@@ -39,7 +39,7 @@ const init = (app: express.Application) => {
         try {
           let buff = Buffer.from(String(req.query.state), 'base64');
           const { n: networkId } = JSON.parse(buff.toString('ascii')) as { n: string };
-          const webhook: IncomingWebhook = await IncomingWebhookModel.create({
+          const webhook: IncomingWebhookType = await IncomingWebhookModel.create({
             channel: params?.incoming_webhook?.channel,
             channelId: params?.incoming_webhook?.channel_id,
             url: params?.incoming_webhook?.url,
@@ -51,6 +51,9 @@ const init = (app: express.Application) => {
             teamName: params?.team_name,
             networkId,
           });
+
+         await new SlackService(webhook.url).sendWelcomeMessage()
+          
           done(null, webhook);
         } catch (err) {
           logger.error('An error occured during the SlackStrategy handling');
