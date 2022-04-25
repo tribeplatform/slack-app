@@ -15,4 +15,6 @@ export const {
   LOG_FORMAT,
   LOG_DIR = '../logs',
   ORIGIN,
+  SLACK_CLIENT_ID,
+  SLACK_CLIENT_SECRET
 } = process.env;
