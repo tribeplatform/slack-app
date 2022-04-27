@@ -7,7 +7,7 @@ import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-we
 import { logger } from '@/utils/logger';
 import SlackService from '@/services/slack.services';
 const SlackStrategy = require('passport-slack').Strategy;
-
+const DEFAULT_EVENTS = ['post.create']
 interface Params {
   ok: true;
   access_token: string;
@@ -50,10 +50,11 @@ const init = (app: express.Application) => {
             teamId: params?.team_id,
             teamName: params?.team_name,
             networkId,
+            events: DEFAULT_EVENTS,
           });
 
-         await new SlackService(webhook.url).sendWelcomeMessage()
-          
+          await new SlackService(webhook.url).sendWelcomeMessage();
+
           done(null, webhook);
         } catch (err) {
           logger.error('An error occured during the SlackStrategy handling');
