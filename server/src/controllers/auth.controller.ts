@@ -1,15 +1,20 @@
 import { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
-
+import auth from '@utils/auth';
 class AuthController {
   public webhookAuth = async (req: Request, res: Response, next: NextFunction) => {
+    const { jwt, redirect = '/' } = req.query;
+    if (!jwt) {
+      res.status(400).json({ success: false, message: '"jwt" is a mandatory param.' });
+      return;
+    }
     try {
-      const { networkId, redirect = '/' } = req.query;
-      if (!networkId) {
-        res.status(400).json({ success: false, message: '"networkId" is a mandatory param.' });
+      const decodedJwt = auth.verify(jwt as string) as any;
+      if (!decodedJwt || !decodedJwt.sub) {
+        res.status(403).json({ success: false, message: `You don't have access to this page.` });
         return;
       }
-      const state = Buffer.from(JSON.stringify({ n: networkId, r: redirect }), 'ascii').toString('base64');
+      const state = Buffer.from(JSON.stringify({ n: decodedJwt.sub, r: redirect }), 'ascii').toString('base64');
       passport.authorize('webhook', {
         state,
       })(req, res, next);

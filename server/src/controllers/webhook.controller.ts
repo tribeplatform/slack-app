@@ -6,8 +6,12 @@ import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL } from '@/config';
 import SlackService from '@/services/slack.services';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
+import auth from '@/utils/auth';
 
-const DEFAULT_SETTINGS = {};
+const DEFAULT_SETTINGS = {
+  webhooks: [],
+  jwt: null,
+};
 
 class WebhookController {
   public index = async (req: Request, res: Response, next: NextFunction) => {
@@ -57,8 +61,12 @@ class WebhookController {
    * TODO: Elaborate on this function
    */
   private async getSettings(input) {
+    const { networkId } = input;
     const currentSettings = input.currentSettings[0]?.settings || {};
     let defaultSettings;
+    const webhooks = await IncomingWebhookModel.find({
+      networkId,
+    }).select('channel teamName').lean();
     switch (input.context) {
       case Types.PermissionContext.NETWORK:
         defaultSettings = DEFAULT_SETTINGS;
@@ -69,6 +77,10 @@ class WebhookController {
     const settings = {
       ...defaultSettings,
       ...currentSettings,
+      ...{
+        webhooks,
+        jwt: auth.sign({ networkId }),
+      },
     };
     return {
       type: input.type,
@@ -87,7 +99,7 @@ class WebhookController {
     return {
       type: input.type,
       status: 'SUCCEEDED',
-      data: { toStore: input.data.settings },
+      data: {},
     };
   }
 
@@ -157,7 +169,7 @@ class WebhookController {
       };
       const webhooks: IncomingWebhookType[] = await IncomingWebhookModel.find({
         networkId,
-      });
+      }).lean();
       webhooks.forEach(webhook => new SlackService(webhook.url).sendNewPostMessage(options));
     }
     return {

@@ -41,6 +41,11 @@ const incomingWebhookSchema: Schema = new Schema({
     type: String,
     required: true,
   },
+  events: [
+    {
+      type: String,
+    },
+  ],
 });
 
 incomingWebhookSchema.index({ networkId: 1 });
