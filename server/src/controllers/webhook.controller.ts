@@ -42,6 +42,9 @@ class WebhookController {
         case 'SUBSCRIPTION':
           result = await this.handleSubscription(input);
           break;
+        case 'APP_UNINSTALLED':
+          result = await this.uninstall(input)
+          break
       }
       res.status(200).json(result);
     } catch (error) {
@@ -176,6 +179,24 @@ class WebhookController {
 
       webhookUrls.forEach(url => new SlackService(url).sendNewPostMessage(options));
     }
+    return {
+      type: input.type,
+      status: 'SUCCEEDED',
+      data: {},
+    };
+  }
+
+  /**
+   *
+   * @param input
+   * @returns { type: input.type, status: 'SUCCEEDED', data: {} }
+   * TODO: Elaborate on this function
+   */
+  private async uninstall(input) {
+    const { networkId } = input as { networkId: string };
+    await IncomingWebhookModel.deleteMany({
+      networkId,
+    }).lean();
     return {
       type: input.type,
       status: 'SUCCEEDED',
