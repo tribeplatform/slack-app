@@ -1,9 +1,13 @@
 import { NextFunction, Request, Response } from 'express';
 
-import { Types } from '@tribeplatform/gql-client';
+import { TribeClient, Types } from '@tribeplatform/gql-client';
 import { logger } from '@/utils/logger';
+import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL } from '@/config';
+import SlackService from '@/services/slack.services';
+import IncomingWebhookModel from '@/models/incomingWebhook.model';
+import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 
-const DEFAULT_SETTINGS = {}
+const DEFAULT_SETTINGS = {};
 
 class WebhookController {
   public index = async (req: Request, res: Response, next: NextFunction) => {
@@ -94,6 +98,68 @@ class WebhookController {
    * TODO: Elaborate on this function
    */
   private async handleSubscription(input) {
+    const acceptedEvents = ['post.published'];
+    if (acceptedEvents.indexOf(input?.data?.name) !== -1) {
+      const tribeClient = new TribeClient({
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        graphqlUrl: GRAPHQL_URL,
+      });
+      const { networkId } = input as { networkId: string };
+      const { object } = input?.data as { object: Types.Post; networkId: string };
+      const authorId = object?.createdById;
+      const spaceId = object?.spaceId;
+      const accessToken = await tribeClient.generateToken({
+        networkId,
+      });
+      const [post, author, space] = await Promise.all([
+        tribeClient.posts.get(
+          {
+            id: object.id,
+          },
+          'all',
+          accessToken,
+        ),
+        tribeClient.members.get(
+          {
+            id: authorId,
+          },
+          'all',
+          accessToken,
+        ),
+        tribeClient.spaces.get(
+          {
+            id: spaceId,
+          },
+          'all',
+          accessToken,
+        ),
+      ]);
+      const options = {
+        post: {
+          id: post.id,
+          title: post.title,
+          content: post.shortContent,
+          url: post.url,
+          // image: (post?.seoDetail?.image as Types.Image)?.url,
+        },
+        author: {
+          id: author.id,
+          name: author.name,
+          url: author.url,
+          profilePicture: (author?.profilePicture as Types.Image)?.urls?.small,
+        },
+        space: {
+          id: space.id,
+          name: space.name,
+          url: space.url,
+        },
+      };
+      const webhooks: IncomingWebhookType[] = await IncomingWebhookModel.find({
+        networkId,
+      });
+      webhooks.forEach(webhook => new SlackService(webhook.url).sendNewPostMessage(options));
+    }
     return {
       type: input.type,
       status: 'SUCCEEDED',

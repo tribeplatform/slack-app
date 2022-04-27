@@ -44,6 +44,6 @@ const incomingWebhookSchema: Schema = new Schema({
   
 });
 
-const incomingWebhookModel = model<IncomingWebhook & Document>('IncomingWebhook', incomingWebhookSchema);
+const IncomingWebhookModel = model<IncomingWebhook & Document>('IncomingWebhook', incomingWebhookSchema);
 
-export default incomingWebhookModel;
+export default IncomingWebhookModel;
