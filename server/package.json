@@ -30,10 +30,12 @@
     "helmet": "^4.6.0",
     "hpp": "^0.2.3",
     "jsonwebtoken": "^8.5.1",
+    "liquidjs": "^9.37.0",
     "mongoose": "^5.10.1",
     "morgan": "^1.10.0",
     "passport": "^0.5.2",
     "passport-slack": "^0.0.7",
+    "slackify-html": "^1.0.1",
     "winston": "^3.3.3",
     "winston-daily-rotate-file": "^4.5.5"
   },
