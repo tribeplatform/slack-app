@@ -66,7 +66,9 @@ class WebhookController {
     let defaultSettings;
     const webhooks = await IncomingWebhookModel.find({
       networkId,
-    }).select('channel teamName').lean();
+    })
+      .select('channel teamName')
+      .lean();
     switch (input.context) {
       case Types.PermissionContext.NETWORK:
         defaultSettings = DEFAULT_SETTINGS;
@@ -110,14 +112,18 @@ class WebhookController {
    * TODO: Elaborate on this function
    */
   private async handleSubscription(input) {
-    const acceptedEvents = ['post.published'];
-    if (acceptedEvents.indexOf(input?.data?.name) !== -1) {
+    const { networkId } = input as { networkId: string };
+    const webhooks: IncomingWebhookType[] = await IncomingWebhookModel.find({
+      networkId,
+    }).lean();
+    const webhookUrls = webhooks.filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1);
+    if (webhookUrls.length) {
       const tribeClient = new TribeClient({
         clientId: CLIENT_ID,
         clientSecret: CLIENT_SECRET,
         graphqlUrl: GRAPHQL_URL,
       });
-      const { networkId } = input as { networkId: string };
+
       const { object } = input?.data as { object: Types.Post; networkId: string };
       const authorId = object?.createdById;
       const spaceId = object?.spaceId;
@@ -167,10 +173,8 @@ class WebhookController {
           url: space.url,
         },
       };
-      const webhooks: IncomingWebhookType[] = await IncomingWebhookModel.find({
-        networkId,
-      }).lean();
-      webhooks.forEach(webhook => new SlackService(webhook.url).sendNewPostMessage(options));
+
+      webhookUrls.forEach(url => new SlackService(url).sendNewPostMessage(options));
     }
     return {
       type: input.type,

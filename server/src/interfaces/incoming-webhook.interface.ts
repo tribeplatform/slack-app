@@ -9,4 +9,5 @@ export interface IncomingWebhook {
   teamId: string,
   teamName: string,
   networkId: string
+  events: string[]
 }
