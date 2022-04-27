@@ -41,8 +41,9 @@ const incomingWebhookSchema: Schema = new Schema({
     type: String,
     required: true,
   },
-  
 });
+
+incomingWebhookSchema.index({ networkId: 1 });
 
 const IncomingWebhookModel = model<IncomingWebhook & Document>('IncomingWebhook', incomingWebhookSchema);
 
