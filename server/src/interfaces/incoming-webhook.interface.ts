@@ -1,4 +1,8 @@
+import mongoose from "mongoose";
+
 export interface IncomingWebhook {
+  _id: mongoose.Types.ObjectId | string
+  id: string
   channel: string;
   channelId: string,
   url: string,
@@ -9,5 +13,6 @@ export interface IncomingWebhook {
   teamId: string,
   teamName: string,
   networkId: string
+  spaceIds: string[]
   events: string[]
 }

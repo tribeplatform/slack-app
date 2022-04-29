@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 
 import { TribeClient, Types } from '@tribeplatform/gql-client';
 import { logger } from '@/utils/logger';
-import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL } from '@/config';
+import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL, SERVER_URL } from '@/config';
 import SlackService from '@/services/slack.services';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
@@ -11,6 +11,7 @@ import auth from '@/utils/auth';
 const DEFAULT_SETTINGS = {
   webhooks: [],
   jwt: null,
+  authUrl: `${SERVER_URL}/api/slack/webhook/auth`,
 };
 
 class WebhookController {
@@ -43,8 +44,8 @@ class WebhookController {
           result = await this.handleSubscription(input);
           break;
         case 'APP_UNINSTALLED':
-          result = await this.uninstall(input)
-          break
+          result = await this.uninstall(input);
+          break;
       }
       res.status(200).json(result);
     } catch (error) {
@@ -70,7 +71,7 @@ class WebhookController {
     const webhooks = await IncomingWebhookModel.find({
       networkId,
     })
-      .select('channel teamName')
+      .select('_id channel spaceIds teamName events id')
       .lean();
     switch (input.context) {
       case Types.PermissionContext.NETWORK:
@@ -83,7 +84,11 @@ class WebhookController {
       ...defaultSettings,
       ...currentSettings,
       ...{
-        webhooks,
+        webhooks: webhooks.map(webhook => {
+          webhook.id = webhook._id;
+          delete webhook._id;
+          return webhook;
+        }),
         jwt: auth.sign({ networkId }),
       },
     };
@@ -101,10 +106,37 @@ class WebhookController {
    * TODO: Elaborate on this function
    */
   private async updateSettings(input) {
+    const { networkId } = input;
+    const action = input?.data?.settings?.action;
+    const payload = input?.data?.settings?.payload;
+    switch (action) {
+      case 'DELETE_WEBHOOK':
+      case 'UPDATE_WEBHOOK':
+        const _id = payload?.id;
+        if (!_id) {
+          return {
+            type: input.type,
+            status: 'FAILED',
+            data: {},
+          };
+        }
+        const webhook = await IncomingWebhookModel.findOne({ networkId, _id });
+        if (action === 'DELETE_WEBHOOK') {
+          await webhook.remove();
+        } else {
+          const fields = ['events', 'spaceIds'];
+          for (let field of fields) {
+            if (typeof payload[field] != 'undefined') webhook[field] = payload[field];
+          }
+          await webhook.save();
+        }
+        break;
+    }
+    const settings = this.getSettings(input);
     return {
       type: input.type,
       status: 'SUCCEEDED',
-      data: {},
+      data: settings,
     };
   }
 
@@ -119,7 +151,13 @@ class WebhookController {
     const webhooks: IncomingWebhookType[] = await IncomingWebhookModel.find({
       networkId,
     }).lean();
-    const webhookUrls = webhooks.filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1);
+    const { object } = input?.data as { object: Types.Post; networkId: string };
+    const authorId = object?.createdById;
+    const spaceId = object?.spaceId;
+    const webhookUrls = webhooks.filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1).filter(webhook => {
+      if(spaceId) return webhook.spaceIds.indexOf(spaceId) !== -1
+      return webhook
+    });
     if (webhookUrls.length) {
       const tribeClient = new TribeClient({
         clientId: CLIENT_ID,
@@ -127,9 +165,6 @@ class WebhookController {
         graphqlUrl: GRAPHQL_URL,
       });
 
-      const { object } = input?.data as { object: Types.Post; networkId: string };
-      const authorId = object?.createdById;
-      const spaceId = object?.spaceId;
       const accessToken = await tribeClient.generateToken({
         networkId,
       });
