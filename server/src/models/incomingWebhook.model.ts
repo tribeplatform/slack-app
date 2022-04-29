@@ -41,6 +41,11 @@ const incomingWebhookSchema: Schema = new Schema({
     type: String,
     required: true,
   },
+  spaceIds: [
+    {
+      type: String,
+    },
+  ],
   events: [
     {
       type: String,
