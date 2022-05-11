@@ -38,7 +38,7 @@ const init = (app: express.Application) => {
       async (req: express.Request, accessToken: string, refreshToken: string, params: Params, profile, done) => {
         try {
           let buff = Buffer.from(String(req.query.state), 'base64');
-          const { n: networkId, m: memberId } = JSON.parse(buff.toString('ascii')) as { n: string, m: string };
+          const { n: networkId, m: memberId, s: spaceIds } = JSON.parse(buff.toString('ascii')) as { n: string; m: string; s: string };
           const webhook: IncomingWebhookType = await IncomingWebhookModel.create({
             channel: params?.incoming_webhook?.channel,
             channelId: params?.incoming_webhook?.channel_id,
@@ -51,6 +51,7 @@ const init = (app: express.Application) => {
             teamName: params?.team_name,
             memberId,
             networkId,
+            spaceIds: spaceIds.split(',') || [],
             events: DEFAULT_EVENTS,
           });
 
