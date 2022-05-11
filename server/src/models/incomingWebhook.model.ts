@@ -41,6 +41,10 @@ const incomingWebhookSchema: Schema = new Schema({
     type: String,
     required: true,
   },
+  memberId: {
+    type: String,
+    required: true,
+  },
   spaceIds: [
     {
       type: String,
