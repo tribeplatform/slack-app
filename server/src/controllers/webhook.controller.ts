@@ -1,6 +1,6 @@
 import { NextFunction, Request, Response } from 'express';
 
-import { TribeClient, Types } from '@tribeplatform/gql-client';
+import { GlobalClient, Types } from '@tribeplatform/gql-client';
 import { logger } from '@/utils/logger';
 import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL, SERVER_URL } from '@/config';
 import SlackService from '@/services/slack.services';
@@ -71,7 +71,7 @@ class WebhookController {
     const webhooks = await IncomingWebhookModel.find({
       networkId,
     })
-      .select('_id channel spaceIds teamName events id')
+      .select('_id channel spaceIds teamName events id userId memberId')
       .lean();
     switch (input.context) {
       case Types.PermissionContext.NETWORK:
@@ -154,18 +154,20 @@ class WebhookController {
     const { object } = input?.data as { object: Types.Post; networkId: string };
     const authorId = object?.createdById;
     const spaceId = object?.spaceId;
-    const webhookUrls = webhooks.filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1).filter(webhook => {
-      if(spaceId) return webhook.spaceIds.indexOf(spaceId) !== -1
-      return webhook
-    });
+    const webhookUrls = webhooks
+      .filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1)
+      .filter(webhook => {
+        if (spaceId) return webhook.spaceIds.indexOf(spaceId) !== -1;
+        return webhook;
+      });
     if (webhookUrls.length) {
-      const tribeClient = new TribeClient({
+      const globalClient = new GlobalClient({
         clientId: CLIENT_ID,
         clientSecret: CLIENT_SECRET,
         graphqlUrl: GRAPHQL_URL,
       });
 
-      const accessToken = await tribeClient.generateToken({
+      const tribeClient = await globalClient.getTribeClient({
         networkId,
       });
       const [post, author, space] = await Promise.all([
@@ -174,21 +176,18 @@ class WebhookController {
             id: object.id,
           },
           'all',
-          accessToken,
         ),
         tribeClient.members.get(
           {
             id: authorId,
           },
           'all',
-          accessToken,
         ),
         tribeClient.spaces.get(
           {
             id: spaceId,
           },
           'all',
-          accessToken,
         ),
       ]);
       const options = {
@@ -197,7 +196,6 @@ class WebhookController {
           title: post.title,
           content: post.shortContent,
           url: post.url,
-          // image: (post?.seoDetail?.image as Types.Image)?.url,
         },
         author: {
           id: author.id,

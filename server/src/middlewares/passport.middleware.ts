@@ -7,7 +7,7 @@ import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-we
 import { logger } from '@/utils/logger';
 import SlackService from '@/services/slack.services';
 const SlackStrategy = require('passport-slack').Strategy;
-const DEFAULT_EVENTS = ['post.create']
+const DEFAULT_EVENTS = ['post.published'];
 interface Params {
   ok: true;
   access_token: string;
@@ -38,7 +38,7 @@ const init = (app: express.Application) => {
       async (req: express.Request, accessToken: string, refreshToken: string, params: Params, profile, done) => {
         try {
           let buff = Buffer.from(String(req.query.state), 'base64');
-          const { n: networkId } = JSON.parse(buff.toString('ascii')) as { n: string };
+          const { n: networkId, m: memberId } = JSON.parse(buff.toString('ascii')) as { n: string, m: string };
           const webhook: IncomingWebhookType = await IncomingWebhookModel.create({
             channel: params?.incoming_webhook?.channel,
             channelId: params?.incoming_webhook?.channel_id,
@@ -49,6 +49,7 @@ const init = (app: express.Application) => {
             userId: params?.user_id,
             teamId: params?.team_id,
             teamName: params?.team_name,
+            memberId,
             networkId,
             events: DEFAULT_EVENTS,
           });
