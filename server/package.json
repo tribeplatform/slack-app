@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@slack/webhook": "^6.1.0",
-    "@tribeplatform/gql-client": "^1.1.2",
+    "@tribeplatform/gql-client": "^1.5.0",
     "@types/react": "^18.0.3",
     "@types/react-dom": "^18.0.0",
     "axios": "^0.26.1",
