@@ -7,7 +7,18 @@ import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-we
 import { logger } from '@/utils/logger';
 import SlackService from '@/services/slack.services';
 const SlackStrategy = require('passport-slack').Strategy;
-const DEFAULT_EVENTS = ['post.published'];
+const DEFAULT_EVENTS = [
+  'post.published',
+  'moderation.created',
+  'moderation.accepted',
+  'moderation.rejected',
+  'space_membership.created',
+  'space_membership.deleted',
+  'space_join_request.created',
+  'space_join_request.accepted',
+  'member_invitation.created',
+  'member.verified',
+];
 interface Params {
   ok: true;
   access_token: string;
