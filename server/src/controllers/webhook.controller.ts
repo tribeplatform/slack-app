@@ -171,6 +171,7 @@ class WebhookController {
       });
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
+        context: true,
       };
       let memberId: string;
       let spaceId: string;
@@ -208,8 +209,9 @@ class WebhookController {
           spaceId = object?.spaceId;
           actorId = object?.memberId;
           break;
-        case 'member.created':
+        case 'member.verified':
           memberId = (object as Types.Member)?.id;
+          payload.context = false
           break;
       }
       if (memberId) {
