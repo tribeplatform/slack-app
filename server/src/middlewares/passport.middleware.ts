@@ -62,7 +62,7 @@ const init = (app: express.Application) => {
             teamName: params?.team_name,
             memberId,
             networkId,
-            spaceIds: spaceIds.split(',') || [],
+            spaceIds: spaceIds?.split(',') || [],
             events: DEFAULT_EVENTS,
           });
 
