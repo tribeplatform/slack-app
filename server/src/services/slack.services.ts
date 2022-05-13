@@ -1,60 +1,17 @@
 import { logger } from '@/utils/logger';
 import { IncomingWebhook } from '@slack/webhook';
-import { Liquid } from 'liquidjs';
-import slackify from 'slackify-html';
+import * as blockUtils from '@utils/blockParser';
+import { Types } from '@tribeplatform/gql-client';
 interface Options {
   url: string;
 }
-const NEW_POST_TEMPLATE = `
-  {
-    "blocks": [
-      {
-        "type": "section",
-        "text": {
-          "type": "mrkdwn",
-          "text": "{% if post.title  != blank %}*<{{ post.url }}|{{ post.title }}>*\\n{% endif %}{% if post.content != blank %}{{ post.content }}{% endif %}"
-        }
-        {% if post.image != blank %}
-        ,"accessory": {
-          "type": "image",
-          "image_url": "{{ post.image }}",
-          "alt_text": "{{ post.title }}"
-        }
-        {% endif %}
-      },
-      {
-        "type": "context",
-        "elements": [
-          {% if author != blank %}
-            {% if author.profilePicture != blank %}
-            {
-              "type": "image",
-              "image_url": "{{ author.profilePicture }}",
-              "alt_text": "{{ author.name }}"
-            },{% endif %}
-            {
-              "type": "mrkdwn",
-              "text": "Author: <{{ author.url }}|{{ author.name }}>"
-            },
-          {% endif %}
-          {% if space != blank %}
-            {% if space.image != blank %}
-            {
-              "type": "image",
-              "image_url": "{{ space.image }}",
-              "alt_text": "{{ space.name }}"
-            },
-            {% endif %}
-            {
-              "type": "mrkdwn",
-              "text": "*Space*: <{{ space.url }}|{{ space.name }}>"
-            }
-          {% endif %}
-        ]
-      }
-    ]
-  }
-`;
+export interface UpdateMessagePayload {
+  event: string;
+  member?: Types.Member;
+  actor?: Types.Member;
+  space?: Types.Space;
+  post?: Types.Post;
+}
 class SlackService {
   private slackClient: IncomingWebhook;
 
@@ -64,27 +21,43 @@ class SlackService {
   }
 
   public async sendWelcomeMessage() {
-    return this.slackClient.send({
-      blocks: [
-        {
-          type: 'section',
-          text: {
-            type: 'mrkdwn',
-            text: 'Hi there, *Community Bot* is here! I would inform you on community updates in this channel.',
-          },
-        },
-      ],
-    });
+    return this.slackClient.send(
+      blockUtils.createTextBlock('Hi there, *Community Bot* is here! I would inform you on community updates in this channel.'),
+    );
   }
-  private generateSlackMessage(options) {
-    const engine = new Liquid();
-    if (options?.post?.content) options.post.content = slackify(options.post.content);
-    const renderedMessage = engine.parseAndRenderSync(NEW_POST_TEMPLATE, { ...options, v: 'Liquid' });
-    return JSON.parse(renderedMessage);
-  }
-  public async sendNewPostMessage(options) {
+  public async sendSlackMessage(payload: UpdateMessagePayload) {
     try {
-      return this.slackClient.send(this.generateSlackMessage(options));
+      const blocks = [];
+      const sentences = [];
+      switch (payload.event) {
+        case 'post.published':
+          sentences.push(
+            `${blockUtils.createEntityHyperLink(payload.member)} added a ${blockUtils.createHyperlink({
+              text: payload.post.repliedToId ? 'reply' : 'post',
+              url: payload.post.url,
+            })}`,
+          );
+          sentences.push(
+            blockUtils.createHyperlink({
+              text: payload.post.repliedTo ? payload.post.repliedTo.title : payload.post.title,
+              url: payload.post.url,
+            }),
+          );
+          sentences.push(blockUtils.createPostContentQuote(payload.post));
+          break;
+      }
+      sentences.forEach(sentence => blocks.push(blockUtils.createTextSection(sentence)));
+      if (payload.member || payload.space) {
+        let elements = [];
+        if (payload.member) elements = elements.concat(blockUtils.createEntityContext({ title: 'Member', entity: payload.member }));
+        if (payload.space) elements = elements.concat(blockUtils.createEntityContext({ title: 'Space', entity: payload.space }));
+        blocks.push({
+          type: 'context',
+          elements,
+        });
+      }
+      console.log(JSON.stringify({ blocks }));
+      this.slackClient.send({ blocks });
     } catch (err) {
       logger.error(err);
     }
