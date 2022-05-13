@@ -11,6 +11,7 @@ export interface UpdateMessagePayload {
   actor?: Types.Member;
   space?: Types.Space;
   post?: Types.Post;
+  context?: boolean,
 }
 class SlackService {
   private slackClient: IncomingWebhook;
@@ -45,9 +46,15 @@ class SlackService {
           );
           sentences.push(blockUtils.createPostContentQuote(payload.post));
           break;
+        case 'member.verified':
+          sentences.push(
+            `${blockUtils.createEntityHyperLink(payload.member)} joined the community`,
+          );
+          break
+        
       }
       sentences.forEach(sentence => blocks.push(blockUtils.createTextSection(sentence)));
-      if (payload.member || payload.space) {
+      if (payload.context && (payload.member || payload.space)) {
         let elements = [];
         if (payload.member) elements = elements.concat(blockUtils.createEntityContext({ title: 'Member', entity: payload.member }));
         if (payload.space) elements = elements.concat(blockUtils.createEntityContext({ title: 'Space', entity: payload.space }));
