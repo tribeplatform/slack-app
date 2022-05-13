@@ -156,7 +156,8 @@ class WebhookController {
     const webhookUrls = webhooks
       .filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1)
       .filter(webhook => {
-        if (spaceId) return webhook.spaceIds.indexOf(spaceId) !== -1;
+        if (spaceId) return !webhook.spaceIds.length || webhook.spaceIds.indexOf(spaceId) !== -1;
+        if(!spaceId && webhook.spaceIds.length) return false
         return webhook;
       });
     if (webhookUrls.length) {
@@ -190,28 +191,36 @@ class WebhookController {
           if (object.entityType === Types.ModerationEntityType.POST) postId = object.entityId;
           else if (object.entityType === Types.ModerationEntityType.MEMBER) memberId = object.createdById;
           spaceId = object?.spaceId;
-          actorId = object?.actor?.id;
+          actorId = object?.moderatorId;
           break;
         case 'space_membership.created':
         case 'space_membership.deleted':
           memberId = object?.memberId;
           spaceId = object?.spaceId;
-          actorId = object?.memberId;
+          actorId = input?.data?.actor?.id;
+          payload.context = false;
           break;
         case 'space_join_request.created':
         case 'space_join_request.accepted':
           memberId = object?.memberId;
           spaceId = object?.spaceId;
-          actorId = object?.memberId;
+          actorId = object?.updatedById;
+          payload.context = false;
           break;
         case 'member_invitation.created':
-          memberId = object?.memberId;
-          spaceId = object?.spaceId;
-          actorId = object?.memberId;
+          payload.member = {
+            id: object?.id,
+            email: object?.inviteeEmail,
+            name: object?.inviteeName ? `${object?.inviteeName} (${object?.inviteeEmail})` : object?.inviteeEmail,
+            createdAt: object?.createdAt,
+            networkId: object?.networkId,
+          } as Types.Member;
+          actorId = object?.inviterId;
+          payload.context = false
           break;
         case 'member.verified':
           memberId = (object as Types.Member)?.id;
-          payload.context = false
+          payload.context = false;
           break;
       }
       if (memberId) {
