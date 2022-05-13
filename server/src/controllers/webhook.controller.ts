@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express';
 import { GlobalClient, Types } from '@tribeplatform/gql-client';
 import { logger } from '@/utils/logger';
 import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL, SERVER_URL } from '@/config';
-import SlackService from '@/services/slack.services';
+import SlackService, { UpdateMessagePayload } from '@/services/slack.services';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 import auth from '@/utils/auth';
@@ -151,8 +151,7 @@ class WebhookController {
     const webhooks: IncomingWebhookType[] = await IncomingWebhookModel.find({
       networkId,
     }).lean();
-    const { object } = input?.data as { object: Types.Post; networkId: string };
-    const authorId = object?.createdById;
+    const { object } = input?.data as { object: any; networkId: string };
     const spaceId = object?.spaceId;
     const webhookUrls = webhooks
       .filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1)
@@ -170,47 +169,67 @@ class WebhookController {
       const tribeClient = await globalClient.getTribeClient({
         networkId,
       });
-      const [post, author, space] = await Promise.all([
-        tribeClient.posts.get(
-          {
-            id: object.id,
-          },
-          'all',
-        ),
-        tribeClient.members.get(
-          {
-            id: authorId,
-          },
-          'all',
-        ),
-        tribeClient.spaces.get(
-          {
-            id: spaceId,
-          },
-          'all',
-        ),
-      ]);
-      const options = {
-        post: {
-          id: post.id,
-          title: post.title,
-          content: post.shortContent,
-          url: post.url,
-        },
-        author: {
-          id: author.id,
-          name: author.name,
-          url: author.url,
-          profilePicture: (author?.profilePicture as Types.Image)?.urls?.small,
-        },
-        space: {
-          id: space.id,
-          name: space.name,
-          url: space.url,
-        },
+      const payload: UpdateMessagePayload = {
+        event: input?.data?.name,
       };
+      let memberId: string;
+      let spaceId: string;
+      let postId: string;
+      let actorId: string;
+      switch (input?.data?.name) {
+        case 'post.published':
+          postId = (object as Types.Post)?.id;
+          actorId = (object as Types.Post)?.createdById;
+          memberId = (object as Types.Post)?.createdById;
+          spaceId = (object as Types.Post)?.spaceId;
+          break;
+        case 'moderation.created':
+        case 'moderation.accepted':
+        case 'moderation.rejected':
+          if (object.entityType === Types.ModerationEntityType.POST) postId = object.entityId;
+          else if (object.entityType === Types.ModerationEntityType.MEMBER) memberId = object.createdById;
+          spaceId = object?.spaceId;
+          actorId = object?.actor?.id;
+          break;
+        case 'space_membership.created':
+        case 'space_membership.deleted':
+          memberId = object?.memberId;
+          spaceId = object?.spaceId;
+          actorId = object?.memberId;
+          break;
+        case 'space_join_request.created':
+        case 'space_join_request.accepted':
+          memberId = object?.memberId;
+          spaceId = object?.spaceId;
+          actorId = object?.memberId;
+          break;
+        case 'member_invitation.created':
+          memberId = object?.memberId;
+          spaceId = object?.spaceId;
+          actorId = object?.memberId;
+          break;
+        case 'member.created':
+          memberId = (object as Types.Member)?.id;
+          break;
+      }
+      if (memberId) {
+        const member = await tribeClient.members.get({ id: memberId }, 'all');
+        payload.member = member;
+      }
+      if (spaceId) {
+        const space = await tribeClient.spaces.get({ id: spaceId }, 'all');
+        payload.space = space;
+      }
+      if (actorId) {
+        const actor = await tribeClient.members.get({ id: actorId }, 'all');
+        payload.actor = actor;
+      }
+      if (postId) {
+        const post = await tribeClient.posts.get({ id: postId }, 'all');
+        payload.post = post;
+      }
 
-      webhookUrls.forEach(url => new SlackService(url).sendNewPostMessage(options));
+      webhookUrls.forEach(url => new SlackService(url).sendSlackMessage(payload));
     }
     return {
       type: input.type,
