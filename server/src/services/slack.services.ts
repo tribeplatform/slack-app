@@ -11,6 +11,7 @@ export interface UpdateMessagePayload {
   actor?: Types.Member;
   space?: Types.Space;
   post?: Types.Post;
+  network: Types.Network,
   context?: boolean;
 }
 class SlackService {
@@ -100,9 +101,7 @@ class SlackService {
           );
           break;
         case 'member_invitation.created':
-          sentences.push(
-            `${blockUtils.createEntityHyperLink(payload.actor)} invited ${payload?.member?.name} to the community`,
-          );
+          sentences.push(`${blockUtils.createEntityHyperLink(payload.actor)} invited ${payload?.member?.name} to the community`);
           break;
       }
       if (payload.post) {
@@ -115,6 +114,7 @@ class SlackService {
         if (payload.post.shortContent) sentences.push(blockUtils.createPostContentQuote(payload.post));
       }
       sentences.forEach(sentence => blocks.push(blockUtils.createTextSection(sentence)));
+
       if (payload.context && (payload.member || payload.space)) {
         let elements = [];
         if (payload.member) elements = elements.concat(blockUtils.createEntityContext({ title: 'Member', entity: payload.member }));
@@ -122,6 +122,24 @@ class SlackService {
         blocks.push({
           type: 'context',
           elements,
+        });
+      }
+      if (payload.event === 'moderation.created') {
+        blocks.push({
+          type: 'actions',
+          elements: [
+            {
+              type: 'button',
+              text: {
+                type: 'plain_text',
+                text: 'Go to moderation',
+                emoji: true,
+              },
+              value: 'redirect_moderation',
+              url: `${payload.network.domain}/settings/moderation`,
+              action_id: 'moderation-url-button',
+            },
+          ],
         });
       }
       this.slackClient.send({ blocks });
