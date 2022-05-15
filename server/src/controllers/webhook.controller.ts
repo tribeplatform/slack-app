@@ -170,8 +170,10 @@ class WebhookController {
       const tribeClient = await globalClient.getTribeClient({
         networkId,
       });
+      const network = await tribeClient.network.get('basic')
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
+        network,
         context: true,
       };
       let memberId: string;
