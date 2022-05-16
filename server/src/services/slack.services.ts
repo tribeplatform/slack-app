@@ -121,8 +121,16 @@ class SlackService {
 
       if (payload.context && (payload.member || payload.space)) {
         let elements = [];
-        if (payload.member) elements = elements.concat(blockUtils.createEntityContext({ title: 'Member', entity: payload.member }));
-        if (payload.space) elements = elements.concat(blockUtils.createEntityContext({ title: 'Space', entity: payload.space }));
+        if (payload.member) {
+          const image = (payload.member.profilePicture as Types.Image)?.url;
+          const emoji = (payload.member.profilePicture as Types.Emoji)?.text;
+          elements = elements.concat(blockUtils.createEntityContext({ title: 'Member', emoji, image, entity: payload.member }));
+        }
+        if (payload.space) {
+          const image = (payload.space.image as Types.Image)?.url;
+          const emoji = (payload.space.image as Types.Emoji)?.text;
+          elements = elements.concat(blockUtils.createEntityContext({ title: 'Space', emoji, image, entity: payload.space }));
+        }
         blocks.push({
           type: 'context',
           elements,
