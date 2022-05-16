@@ -1,5 +1,5 @@
 import { Types } from '@tribeplatform/gql-client';
-import slackify from 'slackify-html'
+import slackify from 'slackify-html';
 
 const POST_TITLE_LIMIT = 100;
 export const createHyperlink = ({ text, url }: { text: string; url: string }): string => `*<${url}|${text}>*`;
@@ -12,7 +12,9 @@ export const createPostTitleBlock = (post: Types.Post) =>
     }),
   );
 
-export const createPostContentQuote = (post: Types.Post) => `> ${slackify(post.shortContent)}`;
+export const createPostContentQuote = (post: Types.Post) => createPostContentQuote(slackify(post.shortContent));
+export const createQuote = (text: string) => `> ${text}`;
+export const parseHtml = (text: string) => slackify(text)
 
 export const createEntityContext = ({ title, entity, image }: { title: string; entity: Types.Member | Types.Space; image?: string }) => {
   const result = [];

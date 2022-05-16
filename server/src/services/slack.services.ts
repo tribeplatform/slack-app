@@ -2,6 +2,7 @@ import { logger } from '@/utils/logger';
 import { IncomingWebhook } from '@slack/webhook';
 import * as blockUtils from '@utils/blockParser';
 import { Types } from '@tribeplatform/gql-client';
+
 interface Options {
   url: string;
 }
@@ -11,7 +12,7 @@ export interface UpdateMessagePayload {
   actor?: Types.Member;
   space?: Types.Space;
   post?: Types.Post;
-  network: Types.Network,
+  network: Types.Network;
   context?: boolean;
 }
 class SlackService {
@@ -73,7 +74,7 @@ class SlackService {
             sentences.push(`${blockUtils.createEntityHyperLink(payload.member)} joined ${blockUtils.createEntityHyperLink(payload.space)}`);
           } else {
             sentences.push(
-              `${blockUtils.createEntityHyperLink(payload.member)} added ${blockUtils.createEntityHyperLink(
+              `${blockUtils.createEntityHyperLink(payload.actor)} added ${blockUtils.createEntityHyperLink(
                 payload.member,
               )} to ${blockUtils.createEntityHyperLink(payload.space)}`,
             );
@@ -111,7 +112,10 @@ class SlackService {
             url: payload.post.url,
           }),
         );
-        if (payload.post.shortContent) sentences.push(blockUtils.createPostContentQuote(payload.post));
+        if (payload.post.shortContent) {
+          const parsed = blockUtils.parseHtml(payload.post.shortContent);
+          if (parsed && parsed.length) sentences.push(blockUtils.createQuote(parsed));
+        }
       }
       sentences.forEach(sentence => blocks.push(blockUtils.createTextSection(sentence)));
 
@@ -135,9 +139,7 @@ class SlackService {
                 text: 'Go to moderation',
                 emoji: true,
               },
-              value: 'redirect_moderation',
-              url: `${payload.network.domain}/settings/moderation`,
-              action_id: 'moderation-url-button',
+              url: `https://${payload.network.domain}/settings/moderation`,
             },
           ],
         });
