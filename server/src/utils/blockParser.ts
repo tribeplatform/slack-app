@@ -14,9 +14,19 @@ export const createPostTitleBlock = (post: Types.Post) =>
 
 export const createPostContentQuote = (post: Types.Post) => createPostContentQuote(slackify(post.shortContent));
 export const createQuote = (text: string) => `> ${text}`;
-export const parseHtml = (text: string) => slackify(text)
+export const parseHtml = (text: string) => slackify(text);
 
-export const createEntityContext = ({ title, entity, image }: { title: string; entity: Types.Member | Types.Space; image?: string }) => {
+export const createEntityContext = ({
+  title,
+  entity,
+  emoji,
+  image,
+}: {
+  title: string;
+  entity: Types.Member | Types.Space;
+  image?: string;
+  emoji?: string;
+}) => {
   const result = [];
   if (image) {
     result.push({
@@ -27,7 +37,7 @@ export const createEntityContext = ({ title, entity, image }: { title: string; e
   }
   result.push({
     type: 'mrkdwn',
-    text: `${title}: ${createEntityHyperLink(entity)}`,
+    text: `${title}: ${emoji ? `:${emoji}: ` : ''}${createEntityHyperLink(entity)}`,
   });
   return result;
 };
