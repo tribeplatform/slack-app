@@ -1,12 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 
-import { GlobalClient, Types } from '@tribeplatform/gql-client';
+import {  Types } from '@tribeplatform/gql-client';
 import { logger } from '@/utils/logger';
-import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL, SERVER_URL } from '@/config';
+import {  SERVER_URL } from '@/config';
 import SlackService, { UpdateMessagePayload } from '@/services/slack.services';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 import auth from '@/utils/auth';
+import { getTribeClient, listMemberByIds } from '@/utils/tribe_client';
+import { uniq, toMap } from '@utils/util';
 
 const DEFAULT_SETTINGS = {
   webhooks: [],
@@ -73,6 +75,7 @@ class WebhookController {
     })
       .select('_id channel spaceIds teamName events id userId memberId')
       .lean();
+    
     switch (input.context) {
       case Types.PermissionContext.NETWORK:
         defaultSettings = DEFAULT_SETTINGS;
@@ -80,12 +83,24 @@ class WebhookController {
       default:
         defaultSettings = {};
     }
+    const spaceIds = uniq(webhooks.filter(webhook => !!webhook.spaceIds.length).map(webhook => webhook.spaceIds).flat())
+    const memberIds = uniq(webhooks.filter(webhook => !!webhook.memberId).map(webhook => webhook.memberId))
+    const tribeClient = await getTribeClient({ networkId })
+    let spaces = toMap(await tribeClient.spaces.listByIds({ ids: spaceIds }, 'basic'), 'id')
+    let members = toMap(await listMemberByIds({ ids: memberIds}, tribeClient), 'id')
     const settings = {
       ...defaultSettings,
       ...currentSettings,
       ...{
-        webhooks: webhooks.map(webhook => {
-          webhook.id = webhook._id;
+        webhooks: webhooks.map((webhook: IncomingWebhookType & { id: string, space: Types.Space, member: Types.Member}) => {
+          webhook.id = webhook._id.toString();
+          if(webhook?.spaceIds?.length){
+            let spaceId = webhook?.spaceIds[0]
+            if(spaces.get(spaceId)) webhook.space = spaces.get( spaceId)
+          }
+          if(webhook?.memberId){
+            if(members.get(webhook?.memberId)) webhook.member = members.get(webhook?.memberId)
+          }
           delete webhook._id;
           return webhook;
         }),
@@ -157,20 +172,12 @@ class WebhookController {
       .filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1)
       .filter(webhook => {
         if (spaceId) return !webhook.spaceIds.length || webhook.spaceIds.indexOf(spaceId) !== -1;
-        if(!spaceId && webhook.spaceIds.length) return false
+        if (!spaceId && webhook.spaceIds.length) return false;
         return webhook;
       });
     if (webhookUrls.length) {
-      const globalClient = new GlobalClient({
-        clientId: CLIENT_ID,
-        clientSecret: CLIENT_SECRET,
-        graphqlUrl: GRAPHQL_URL,
-      });
-
-      const tribeClient = await globalClient.getTribeClient({
-        networkId,
-      });
-      const network = await tribeClient.network.get('basic')
+      const tribeClient = await getTribeClient({ networkId })
+      const network = await tribeClient.network.get('all');
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
         network,
@@ -218,7 +225,7 @@ class WebhookController {
             networkId: object?.networkId,
           } as Types.Member;
           actorId = object?.inviterId;
-          payload.context = false
+          payload.context = false;
           break;
         case 'member.verified':
           memberId = (object as Types.Member)?.id;
@@ -241,8 +248,7 @@ class WebhookController {
         const post = await tribeClient.posts.get({ id: postId }, 'all');
         payload.post = post;
       }
-
-      webhookUrls.forEach(url => new SlackService(url).sendSlackMessage(payload));
+      webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
     }
     return {
       type: input.type,

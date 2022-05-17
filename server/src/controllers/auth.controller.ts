@@ -42,7 +42,6 @@ class AuthController {
     try {
       let buff = Buffer.from(String(req.query.state), 'base64');
       const { r: redirect } = JSON.parse(buff.toString('ascii')) as { r: string };
-
       if (!!redirect) {
         return res.redirect(redirect);
       }

@@ -37,7 +37,7 @@ export const createEntityContext = ({
   }
   result.push({
     type: 'mrkdwn',
-    text: `${title}: ${emoji ? `:${emoji}: ` : ''}${createEntityHyperLink(entity)}`,
+    text: `${emoji ? `:${emoji}: ` : ''}${title}: ${createEntityHyperLink(entity)}`,
   });
   return result;
 };
