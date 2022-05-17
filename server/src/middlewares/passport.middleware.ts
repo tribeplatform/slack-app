@@ -1,11 +1,13 @@
-import { SLACK_CLIENT_ID, SLACK_CLIENT_SECRET } from '@config';
+import { CLIENT_ID, CLIENT_SECRET, GRAPHQL_URL, SLACK_CLIENT_ID, SLACK_CLIENT_SECRET } from '@config';
 
 import passport from 'passport';
 import express from 'express';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 import { logger } from '@/utils/logger';
-import SlackService from '@/services/slack.services';
+import SlackService, { PostMessageArguments } from '@/services/slack.services';
+import { GlobalClient, Types } from '@tribeplatform/gql-client';
+import { IncomingWebhookDefaultArguments } from '@slack/webhook';
 const SlackStrategy = require('passport-slack').Strategy;
 const DEFAULT_EVENTS = [
   'post.published',
@@ -41,7 +43,7 @@ const init = (app: express.Application) => {
         name: 'webhook',
         clientID: SLACK_CLIENT_ID,
         clientSecret: SLACK_CLIENT_SECRET,
-        scope: ['incoming-webhook'],
+        scope: ['incoming-webhook', 'chat:write:bot'],
         skipUserProfile: true,
         passReqToCallback: true,
         callbackURL: '/api/slack/webhook/auth/callback',
@@ -65,9 +67,22 @@ const init = (app: express.Application) => {
             spaceIds: spaceIds?.split(',') || [],
             events: DEFAULT_EVENTS,
           });
+          const globalClient = new GlobalClient({
+            clientId: CLIENT_ID,
+            clientSecret: CLIENT_SECRET,
+            graphqlUrl: GRAPHQL_URL,
+          });
 
-          await new SlackService(webhook.url).sendWelcomeMessage();
-
+          const tribeClient = await globalClient.getTribeClient({
+            networkId,
+          });
+          const network = await tribeClient.network.get('all');
+          const options: any = { username: network.name, channel: webhook.channelId };
+          if (network?.favicon) {
+            const image = (network?.favicon as Types.Image)?.url;
+            options.image = image;
+          }
+          await new SlackService(webhook.accessToken).sendWelcomeMessage(options);
           done(null, webhook);
         } catch (err) {
           logger.error('An error occured during the SlackStrategy handling');

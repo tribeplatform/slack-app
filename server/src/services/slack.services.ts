@@ -1,11 +1,9 @@
 import { logger } from '@/utils/logger';
-import { IncomingWebhook } from '@slack/webhook';
+import { ChatPostMessageArguments, WebClient } from '@slack/web-api';
 import * as blockUtils from '@utils/blockParser';
+import * as utils from '@utils/util';
 import { Types } from '@tribeplatform/gql-client';
 
-interface Options {
-  url: string;
-}
 export interface UpdateMessagePayload {
   event: string;
   member?: Types.Member;
@@ -15,31 +13,44 @@ export interface UpdateMessagePayload {
   network: Types.Network;
   context?: boolean;
 }
+export interface PostMessageArguments {
+  channel: string;
+  username?: string;
+  image?: string;
+  text: string;
+  blocks?: any;
+}
 class SlackService {
-  private slackClient: IncomingWebhook;
+  private slackClient: WebClient;
 
-  constructor(options: Options | string) {
-    const url = typeof options === 'string' ? options : options.url;
-    this.slackClient = new IncomingWebhook(url);
+  constructor(token: string) {
+    this.slackClient = new WebClient(token);
   }
-
-  public async sendWelcomeMessage() {
-    return this.slackClient.send(
-      blockUtils.createTextBlock('Hi there, *Community Bot* is here! I would inform you on community updates in this channel.'),
-    );
+  public async postMessage({ text, blocks, channel, username, image }: PostMessageArguments) {
+    if (!Array.isArray(blocks)) blocks = [blocks];
+    const payload: ChatPostMessageArguments = {
+      channel,
+      blocks,
+      text,
+    };
+    if (username) payload.username = username;
+    if (image) payload.icon_url = image;
+    return this.slackClient.chat.postMessage(payload);
   }
-  public async sendSlackMessage(payload: UpdateMessagePayload) {
+  public async sendWelcomeMessage(args) {
+    return this.postMessage({
+      ...args,
+      text: 'Community Bot is connected',
+      blocks: blockUtils.createTextSection('Hi there, *Community Bot* is here! I would inform you on community updates in this channel.'),
+    });
+  }
+  public async sendSlackMessage(channel: string, payload: UpdateMessagePayload) {
     try {
       const blocks = [];
       const sentences = [];
       switch (payload.event) {
         case 'post.published':
-          sentences.push(
-            `${blockUtils.createEntityHyperLink(payload.member)} added a ${blockUtils.createHyperlink({
-              text: payload.post.repliedToId ? 'reply' : 'post',
-              url: payload.post.url,
-            })}`,
-          );
+          sentences.push(`${blockUtils.createEntityHyperLink(payload.member)} added a ${payload.post.repliedToId ? 'reply' : 'post'}`);
           break;
         case 'member.verified':
           sentences.push(`${blockUtils.createEntityHyperLink(payload.member)} joined the community`);
@@ -52,20 +63,14 @@ class SlackService {
         case 'moderation.rejected':
           if (payload.post) {
             sentences.push(
-              `${blockUtils.createEntityHyperLink(payload.actor)} approved this ${blockUtils.createHyperlink({
-                text: 'post',
-                url: payload.post.url,
-              })}`,
+              `${blockUtils.createEntityHyperLink(payload.actor)} approved this post`,
             );
           }
           break;
         case 'moderation.accepted':
           if (payload.post) {
             sentences.push(
-              `${blockUtils.createEntityHyperLink(payload.actor)} rejected this ${blockUtils.createHyperlink({
-                text: 'post',
-                url: payload.post.url,
-              })}`,
+              `${blockUtils.createEntityHyperLink(payload.actor)} rejected this post`,
             );
           }
           break;
@@ -105,13 +110,16 @@ class SlackService {
           sentences.push(`${blockUtils.createEntityHyperLink(payload.actor)} invited ${payload?.member?.name} to the community`);
           break;
       }
+      const text = sentences[0];
+      sentences[0] = ':bell: ' + text;
       if (payload.post) {
-        sentences.push(
+        sentences[0] =
+          sentences[0] +
+          '\n' +
           blockUtils.createHyperlink({
             text: payload.post.repliedTo ? payload.post.repliedTo.title : payload.post.title,
             url: payload.post.url,
-          }),
-        );
+          });
         if (payload.post.shortContent) {
           const parsed = blockUtils.parseHtml(payload.post.shortContent);
           if (parsed && parsed.length) sentences.push(blockUtils.createQuote(parsed));
@@ -152,7 +160,9 @@ class SlackService {
           ],
         });
       }
-      this.slackClient.send({ blocks });
+
+      const image = (payload.network?.favicon as Types.Image)?.urls?.small;
+      return this.postMessage({ text, blocks, channel, username: payload.network?.name, image });
     } catch (err) {
       logger.error(err);
     }
