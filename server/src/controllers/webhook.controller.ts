@@ -85,9 +85,13 @@ class WebhookController {
     }
     const spaceIds = uniq(webhooks.filter(webhook => !!webhook.spaceIds.length).map(webhook => webhook.spaceIds).flat())
     const memberIds = uniq(webhooks.filter(webhook => !!webhook.memberId).map(webhook => webhook.memberId))
-    const tribeClient = await getTribeClient({ networkId })
-    let spaces = toMap(await tribeClient.spaces.listByIds({ ids: spaceIds }, 'basic'), 'id')
-    let members = toMap(await listMemberByIds({ ids: memberIds}, tribeClient), 'id')
+    let spaces = new Map()
+    let members = new Map()
+    if(spaceIds.length || memberIds.length){
+      const tribeClient = await getTribeClient({ networkId })
+      spaces = toMap(await tribeClient.spaces.listByIds({ ids: spaceIds }, 'basic'), 'id')
+      members = toMap(await listMemberByIds({ ids: memberIds}, tribeClient), 'id')
+    }
     const settings = {
       ...defaultSettings,
       ...currentSettings,
