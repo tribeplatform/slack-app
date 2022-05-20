@@ -15,7 +15,7 @@ const DEFAULT_EVENTS = [
   'moderation.accepted',
   'moderation.rejected',
   'space_membership.created',
-  'space_membership.deleted',
+  // 'space_membership.deleted',
   'space_join_request.created',
   'space_join_request.accepted',
   'member_invitation.created',
