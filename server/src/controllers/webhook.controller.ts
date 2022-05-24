@@ -1,8 +1,8 @@
 import { NextFunction, Request, Response } from 'express';
 
-import {  Types } from '@tribeplatform/gql-client';
+import { Types } from '@tribeplatform/gql-client';
 import { logger } from '@/utils/logger';
-import {  SERVER_URL } from '@/config';
+import { SERVER_URL } from '@/config';
 import SlackService, { UpdateMessagePayload } from '@/services/slack.services';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
@@ -75,7 +75,7 @@ class WebhookController {
     })
       .select('_id channel spaceIds teamName events id userId memberId')
       .lean();
-    
+
     switch (input.context) {
       case Types.PermissionContext.NETWORK:
         defaultSettings = DEFAULT_SETTINGS;
@@ -83,27 +83,32 @@ class WebhookController {
       default:
         defaultSettings = {};
     }
-    const spaceIds = uniq(webhooks.filter(webhook => !!webhook.spaceIds.length).map(webhook => webhook.spaceIds).flat())
-    const memberIds = uniq(webhooks.filter(webhook => !!webhook.memberId).map(webhook => webhook.memberId))
-    let spaces = new Map()
-    let members = new Map()
-    if(spaceIds.length || memberIds.length){
-      const tribeClient = await getTribeClient({ networkId })
-      spaces = toMap(await tribeClient.spaces.listByIds({ ids: spaceIds }, 'basic'), 'id')
-      members = toMap(await listMemberByIds({ ids: memberIds}, tribeClient), 'id')
+    const spaceIds = uniq(
+      webhooks
+        .filter(webhook => !!webhook.spaceIds.length)
+        .map(webhook => webhook.spaceIds)
+        .flat(),
+    );
+    const memberIds = uniq(webhooks.filter(webhook => !!webhook.memberId).map(webhook => webhook.memberId));
+    let spaces = new Map();
+    let members = new Map();
+    if (spaceIds.length || memberIds.length) {
+      const tribeClient = await getTribeClient({ networkId });
+      spaces = toMap(await tribeClient.spaces.listByIds({ ids: spaceIds }, 'basic'), 'id');
+      members = toMap(await listMemberByIds({ ids: memberIds }, tribeClient), 'id');
     }
     const settings = {
       ...defaultSettings,
       ...currentSettings,
       ...{
-        webhooks: webhooks.map((webhook: IncomingWebhookType & { id: string, space: Types.Space, member: Types.Member}) => {
+        webhooks: webhooks.map((webhook: IncomingWebhookType & { id: string; space: Types.Space; member: Types.Member }) => {
           webhook.id = webhook._id.toString();
-          if(webhook?.spaceIds?.length){
-            let spaceId = webhook?.spaceIds[0]
-            if(spaces.get(spaceId)) webhook.space = spaces.get( spaceId)
+          if (webhook?.spaceIds?.length) {
+            let spaceId = webhook?.spaceIds[0];
+            if (spaces.get(spaceId)) webhook.space = spaces.get(spaceId);
           }
-          if(webhook?.memberId){
-            if(members.get(webhook?.memberId)) webhook.member = members.get(webhook?.memberId)
+          if (webhook?.memberId) {
+            if (members.get(webhook?.memberId)) webhook.member = members.get(webhook?.memberId);
           }
           delete webhook._id;
           return webhook;
@@ -180,7 +185,7 @@ class WebhookController {
         return webhook;
       });
     if (webhookUrls.length) {
-      const tribeClient = await getTribeClient({ networkId })
+      const tribeClient = await getTribeClient({ networkId });
       const network = await tribeClient.network.get('all');
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
@@ -250,6 +255,10 @@ class WebhookController {
       }
       if (postId) {
         const post = await tribeClient.posts.get({ id: postId }, 'all');
+        if (post?.repliedToIds?.length) {
+          post.repliedTo =
+            typeof post?.repliedToIds[0] === 'string' ? await tribeClient.posts.get({ id: post?.repliedToIds[0] }, 'all') : post?.repliedToIds[0];
+        }
         payload.post = post;
       }
       webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
