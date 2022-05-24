@@ -12,8 +12,8 @@ export const createPostTitleBlock = (post: Types.Post) =>
     }),
   );
 
-export const createPostContentQuote = (post: Types.Post) => createPostContentQuote(slackify(post.shortContent));
-export const createQuote = (text: string) => `> ${escapeText(text)}`;
+export const createPostContentQuote = (post: Types.Post) => createPostContentQuote(parseHtml(post.shortContent));
+export const createQuote = (text: string) => `> ${parseHtml(text)}`;
 export const parseHtml = (text: string) => slackify(text);
 
 export const createEntityContext = ({
