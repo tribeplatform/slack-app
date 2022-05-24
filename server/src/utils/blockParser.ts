@@ -2,7 +2,7 @@ import { Types } from '@tribeplatform/gql-client';
 import slackify from 'slackify-html';
 
 const POST_TITLE_LIMIT = 100;
-export const createHyperlink = ({ text, url }: { text: string; url: string }): string => `*<${url}|${text}>*`;
+export const createHyperlink = ({ text, url }: { text: string; url: string }): string => `*<${url}|${escapeText(text)}>*`;
 export const createEntityHyperLink = (entity: Types.Member | Types.Space) => createHyperlink({ text: entity.name, url: entity.url });
 export const createPostTitleBlock = (post: Types.Post) =>
   createTextBlock(
@@ -13,7 +13,7 @@ export const createPostTitleBlock = (post: Types.Post) =>
   );
 
 export const createPostContentQuote = (post: Types.Post) => createPostContentQuote(slackify(post.shortContent));
-export const createQuote = (text: string) => `> ${text}`;
+export const createQuote = (text: string) => `> ${escapeText(text)}`;
 export const parseHtml = (text: string) => slackify(text);
 
 export const createEntityContext = ({
@@ -52,3 +52,4 @@ export const createTextSection = (text: string, type: string = 'mrkdwn') => ({
 export const createTextBlock = (text: string, type: string = 'mrkdwn') => ({
   blocks: [createTextSection(text, type)],
 });
+export const escapeText = (text: string): string => text.replace('>', '&gt;').replace('<', '&lt;').replace('&','&amp;');

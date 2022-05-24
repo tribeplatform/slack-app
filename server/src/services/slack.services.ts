@@ -1,8 +1,9 @@
 import { logger } from '@/utils/logger';
 import { ChatPostMessageArguments, WebClient } from '@slack/web-api';
 import * as blockUtils from '@utils/blockParser';
-import * as utils from '@utils/util';
+import * as utils from '@utils/util'
 import { Types } from '@tribeplatform/gql-client';
+
 
 export interface UpdateMessagePayload {
   event: string;
@@ -121,7 +122,7 @@ class SlackService {
             url: payload.post.url,
           });
         if (payload.post.shortContent) {
-          const parsed = blockUtils.parseHtml(payload.post.shortContent);
+          const parsed = blockUtils.parseHtml(utils.transformMentions(payload.post.shortContent, `https://${payload.network.domain}/member/`));
           if (parsed && parsed.length) sentences.push(blockUtils.createQuote(parsed));
         }
       }
