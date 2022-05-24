@@ -1,9 +1,8 @@
 import { logger } from '@/utils/logger';
 import { ChatPostMessageArguments, WebClient } from '@slack/web-api';
 import * as blockUtils from '@utils/blockParser';
-import * as utils from '@utils/util'
+import * as utils from '@utils/util';
 import { Types } from '@tribeplatform/gql-client';
-
 
 export interface UpdateMessagePayload {
   event: string;
@@ -63,16 +62,12 @@ class SlackService {
           break;
         case 'moderation.rejected':
           if (payload.post) {
-            sentences.push(
-              `${blockUtils.createEntityHyperLink(payload.actor)} approved this post`,
-            );
+            sentences.push(`${blockUtils.createEntityHyperLink(payload.actor)} approved this post`);
           }
           break;
         case 'moderation.accepted':
           if (payload.post) {
-            sentences.push(
-              `${blockUtils.createEntityHyperLink(payload.actor)} rejected this post`,
-            );
+            sentences.push(`${blockUtils.createEntityHyperLink(payload.actor)} rejected this post`);
           }
           break;
         case 'space_membership.created':
@@ -114,13 +109,15 @@ class SlackService {
       const text = sentences[0];
       sentences[0] = ':bell: ' + text;
       if (payload.post) {
-        sentences[0] =
-          sentences[0] +
-          '\n' +
-          blockUtils.createHyperlink({
-            text: payload.post.repliedTo ? payload.post.repliedTo.title : payload.post.title,
-            url: payload.post.url,
-          });
+        if (payload.post?.repliedTo?.title || payload.post.title) {
+          sentences[0] =
+            sentences[0] +
+            '\n' +
+            blockUtils.createHyperlink({
+              text: payload.post.repliedTo ? payload.post.repliedTo.title : payload.post.title,
+              url: payload.post.url,
+            });
+        }
         if (payload.post.shortContent) {
           const parsed = blockUtils.parseHtml(utils.transformMentions(payload.post.shortContent, `https://${payload.network.domain}/member/`));
           if (parsed && parsed.length) sentences.push(blockUtils.createQuote(parsed));

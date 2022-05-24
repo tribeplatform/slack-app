@@ -255,10 +255,6 @@ class WebhookController {
       }
       if (postId) {
         const post = await tribeClient.posts.get({ id: postId }, 'all');
-        if (post?.repliedToIds?.length) {
-          post.repliedTo =
-            typeof post?.repliedToIds[0] === 'string' ? await tribeClient.posts.get({ id: post?.repliedToIds[0] }, 'all') : post?.repliedToIds[0];
-        }
         payload.post = post;
       }
       webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
