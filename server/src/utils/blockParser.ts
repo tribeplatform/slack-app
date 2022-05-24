@@ -12,8 +12,8 @@ export const createPostTitleBlock = (post: Types.Post) =>
     }),
   );
 
-export const createPostContentQuote = (post: Types.Post) => createPostContentQuote(parseHtml(post.shortContent));
-export const createQuote = (text: string) => `> ${parseHtml(text)}`;
+export const createPostContentQuote = (post: Types.Post) => createQuote(parseHtml(post.shortContent));
+export const createQuote = (text: string) => `> ${text}`;
 export const parseHtml = (text: string) => slackify(text);
 
 export const createEntityContext = ({
@@ -52,4 +52,4 @@ export const createTextSection = (text: string, type: string = 'mrkdwn') => ({
 export const createTextBlock = (text: string, type: string = 'mrkdwn') => ({
   blocks: [createTextSection(text, type)],
 });
-export const escapeText = (text: string): string => text.replace('>', '&gt;').replace('<', '&lt;').replace('&','&amp;');
+export const escapeText = (text: string): string => text.replace('>', '&gt;').replace('<', '&lt;').replace('&', '&amp;');
