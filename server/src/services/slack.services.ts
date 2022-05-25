@@ -109,12 +109,13 @@ class SlackService {
       const text = sentences[0];
       sentences[0] = ':bell: ' + text;
       if (payload.post) {
-        if (payload.post?.repliedTo?.title || payload.post.title) {
+        const parent = payload.post?.repliedTos?.length ? payload.post?.repliedTos.find(post => !post.repliedToId) : payload.post;
+        if (parent?.title) {
           sentences[0] =
             sentences[0] +
             '\n' +
             blockUtils.createHyperlink({
-              text: payload.post.repliedTo ? payload.post.repliedTo.title : payload.post.title,
+              text: parent.title,
               url: payload.post.url,
             });
         }
