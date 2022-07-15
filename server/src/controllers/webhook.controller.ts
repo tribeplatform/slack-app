@@ -9,6 +9,7 @@ import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-we
 import auth from '@/utils/auth';
 import { getTribeClient, listMemberByIds } from '@/utils/tribe_client';
 import { uniq, toMap } from '@utils/util';
+import { Member } from '@tribeplatform/gql-client/types';
 
 const DEFAULT_SETTINGS = {
   webhooks: [],
@@ -185,6 +186,7 @@ class WebhookController {
         return webhook;
       });
     if (webhookUrls.length) {
+      let skip = false;
       const tribeClient = await getTribeClient({ networkId });
       const network = await tribeClient.network.get('all');
       const payload: UpdateMessagePayload = {
@@ -244,6 +246,10 @@ class WebhookController {
       if (memberId) {
         const member = await tribeClient.members.get({ id: memberId }, 'all');
         payload.member = member;
+        if (this.isDeleted(member)) skip = true;
+        if (input?.data?.name === 'space_membership.created' && memberId === actorId && this.isRecentlyJoined(member, input?.data?.time)) {
+          skip = true;
+        }
       }
       if (spaceId) {
         const space = await tribeClient.spaces.get({ id: spaceId }, 'all');
@@ -257,7 +263,7 @@ class WebhookController {
         const post = await tribeClient.posts.get({ id: postId }, 'all');
         payload.post = post;
       }
-      webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
+      if (!skip) webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
     }
     return {
       type: input.type,
@@ -282,6 +288,12 @@ class WebhookController {
       status: 'SUCCEEDED',
       data: {},
     };
+  }
+  private isRecentlyJoined(member: Member, time: string) {
+    return Math.abs(new Date(time).getTime() - new Date(member.createdAt).getTime()) < 50 * 1000;
+  }
+  private isDeleted(member: Member): boolean {
+    return member.name === 'Deleted Member'
   }
 }
 
