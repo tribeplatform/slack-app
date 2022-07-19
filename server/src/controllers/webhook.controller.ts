@@ -290,7 +290,7 @@ class WebhookController {
     };
   }
   private isRecentlyJoined(member: Member, time: string) {
-    return Math.abs(new Date(time).getTime() - new Date(member.createdAt).getTime()) < 50 * 1000;
+    return Math.abs(new Date().getTime() - new Date(member.createdAt).getTime()) < 50 * 1000;
   }
   private isDeleted(member: Member): boolean {
     return member.name === 'Deleted Member'
