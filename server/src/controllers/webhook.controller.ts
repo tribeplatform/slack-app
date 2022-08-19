@@ -19,7 +19,8 @@ const DEFAULT_SETTINGS = {
 };
 
 class WebhookController {
-  constructor(private readonly logger: Logger){
+  private readonly logger: Logger
+  constructor(){
     this.logger = createLogger(WebhookController.name)
   }
   public index = async (req: Request, res: Response, next: NextFunction) => {
