@@ -1,8 +1,9 @@
-import { logger } from '@/utils/logger';
+import { createLogger } from '@/utils/logger';
 import { ChatPostMessageArguments, WebClient } from '@slack/web-api';
 import * as blockUtils from '@utils/blockParser';
 import * as utils from '@utils/util';
 import { Types } from '@tribeplatform/gql-client';
+import { Logger } from '@tribeplatform/node-logger';
 
 export interface UpdateMessagePayload {
   event: string;
@@ -22,9 +23,10 @@ export interface PostMessageArguments {
 }
 class SlackService {
   private slackClient: WebClient;
-
+  private readonly logger: Logger
   constructor(token: string) {
     this.slackClient = new WebClient(token);
+    this.logger = createLogger(SlackService.name)
   }
   public async postMessage({ text, blocks, channel, username, image }: PostMessageArguments) {
     if (!Array.isArray(blocks)) blocks = [blocks];
@@ -163,7 +165,7 @@ class SlackService {
       const image = (payload.network?.favicon as Types.Image)?.urls?.small;
       return this.postMessage({ text, blocks, channel, username: payload.network?.name, image });
     } catch (err) {
-      logger.error(err);
+      this.logger.error(err);
     }
   }
 }

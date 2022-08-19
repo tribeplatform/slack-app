@@ -4,10 +4,12 @@ import passport from 'passport';
 import express from 'express';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
-import { logger } from '@/utils/logger';
-import SlackService, { PostMessageArguments } from '@/services/slack.services';
+import { createLogger } from '@/utils/logger';
+import SlackService from '@/services/slack.services';
 import { GlobalClient, Types } from '@tribeplatform/gql-client';
-import { IncomingWebhookDefaultArguments } from '@slack/webhook';
+
+const logger = createLogger('PassportMiddleware')
+
 const SlackStrategy = require('passport-slack').Strategy;
 const DEFAULT_EVENTS = [
   'post.published',

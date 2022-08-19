@@ -1,6 +1,3 @@
-import { config } from 'dotenv';
-config({ path: `.env` });
-
 export const CREDENTIALS = process.env.CREDENTIALS === 'true';
 export const {
   NODE_ENV,
@@ -17,5 +14,6 @@ export const {
   ORIGIN,
   SLACK_CLIENT_ID,
   SLACK_CLIENT_SECRET,
-  SERVER_URL
+  SERVER_URL,
+  LOGGER_PRETTY_PRINT
 } = process.env;
