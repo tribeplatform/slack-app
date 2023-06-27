@@ -81,7 +81,7 @@ const init = (app: express.Application) => {
           const network = await tribeClient.network.get('all');
           const options: any = { username: network.name, channel: webhook.channelId };
           if (network?.favicon) {
-            const image = (network?.favicon as Types.Image)?.url;
+            const image = (network?.favicon as Types.Image)?.urls?.thumb || (network?.favicon as Types.Image)?.url;
             options.image = image;
           }
           await new SlackService(webhook.accessToken).sendWelcomeMessage(options);
