@@ -1,0 +1,10 @@
+{
+  "defaults": [
+    {
+      "key": "settings",
+      "interactionUrl": "https://hubspot.tribeplatform.app/api/settings",
+      "contexts": null
+    }
+  ],
+  "customs": []
+}

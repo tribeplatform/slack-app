@@ -1,0 +1,10 @@
+{
+  "defaults": [
+    {
+      "key": "settings",
+      "interactionUrl": null,
+      "contexts": null
+    }
+  ],
+  "customs": []
+}

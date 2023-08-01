@@ -1,30 +1,31 @@
-# Build App
-FROM node:17.4.0-alpine as Builder
-WORKDIR /tribe/app
+# Development build stage
+FROM node:16.13.0 as development-build-stage
 
-COPY package.json yarn.lock ./
-COPY client/package.json ./client/package.json
-COPY server/package.json ./server/package.json
-RUN yarn install --frozen-lockfile
+ENV NODE_ENV development
 
-COPY . .
-RUN yarn build
+COPY . ./app
 
-FROM node:17.4.0-alpine AS Runner
-WORKDIR /tribe/app
-
-ENV NODE_ENV production
-ENV PORT 3000
-
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S tribe -u 1001
-
-RUN chown -R tribe:nodejs /tribe/app
-
-COPY --from=Builder /tribe/app/node_modules /tribe/app/node_modules
-COPY --from=Builder /tribe/app/server /tribe/app/server
-COPY --from=Builder /tribe/app/client/build /tribe/app/server/dist/public
-COPY --from=Builder /tribe/app/package.json /tribe/app
+WORKDIR /app
 
 EXPOSE 3000
+
+RUN yarn install --frozen-lockfile
+RUN yarn build
+RUN yarn db:generate
+
+CMD ["yarn", "dev"]
+
+# Production build stage
+FROM node:16.13.0 as production-build-stage
+
+ENV NODE_ENV production
+
+COPY --from=development-build-stage /app/node_modules /app/node_modules
+COPY --from=development-build-stage /app/dist /app/dist
+COPY --from=development-build-stage /app/package.json /app
+
+WORKDIR /app
+
+EXPOSE 3000
+
 CMD ["yarn", "start"]

@@ -1,0 +1,38 @@
+version: '3.7'
+
+services:
+  proxy:
+    extends:
+      file: docker-compose.dev.yml
+      service: proxy
+
+  mongo:
+    extends:
+      file: docker-compose.dev.yml
+      service: mongo
+
+  server:
+    build:
+      context: ./
+      target: development-build-stage
+      dockerfile: Dockerfile
+    ports:
+      - '3000:3000'
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    restart: 'unless-stopped'
+    links:
+      - mongo
+    depends_on:
+      - mongo
+    networks:
+      - backend
+
+networks:
+  backend:
+    driver: bridge
+
+volumes:
+  data:
+    driver: local

@@ -1,0 +1,35 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Dev app-salesforce",
+            "command": "yarn dev"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Start app-salesforce",
+            "command": "yarn start"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Test app-salesforce",
+            "command": "yarn test"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Lint app-salesforce",
+            "command": "yarn lint"
+        },
+        {
+            "type": "node-terminal",
+            "request": "launch",
+            "name": "Lint:Fix app-salesforce",
+            "command": "yarn lint:fix"
+        }
+    ]
+}
