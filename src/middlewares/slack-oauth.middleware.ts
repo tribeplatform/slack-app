@@ -1,5 +1,5 @@
 import { SERVER_URL, SLACK_CLIENT_ID, SLACK_CLIENT_SECRET } from '@config'
-import { HubspotState } from '@interfaces'
+import { SlackState } from '@interfaces'
 import { globalLogger, verifyJwt } from '@utils'
 import axios from 'axios'
 import { Request, Response } from 'express'
@@ -46,9 +46,7 @@ export const authenticateSlackMiddleware = async (req: Request, res: Response, n
 
 export const consumerExtractorMiddleware = async (req: Request, res: Response, next) => {
   logger.log('consumerExtractorMiddleware called', { query: req.query })
-  const state = await verifyJwt<HubspotState>(
-    (req.query.jwt || req.query.state) as string,
-  )
+  const state = await verifyJwt<SlackState>((req.query.jwt || req.query.state) as string)
   // eslint-disable-next-line require-atomic-updates
   req.state = state
   next()

@@ -1,3 +1,4 @@
+import { connectToSlack } from '@logics'
 import {
   authenticateSlackMiddleware,
   authorizeSlackMiddleware,
@@ -14,7 +15,7 @@ export class OAuthController {
 
   @Get()
   @UseBefore(consumerExtractorMiddleware, authorizeSlackMiddleware)
-  @OpenAPI({ summary: 'Redirects to the Hubspot for authorization.' })
+  @OpenAPI({ summary: 'Redirects to the Slack for authorization.' })
   @HttpCode(302)
   async redirect(): Promise<void> {}
 
@@ -29,10 +30,10 @@ export class OAuthController {
       state: request.state,
     })
 
-    // await connectToHubspot({
-    //   authInfo: request.user,
-    //   state: request.state,
-    // })
+    await connectToSlack({
+      authProfile: request.user,
+      state: request.state,
+    })
     response.redirect(request.state.redirectUrl)
     return response
   }

@@ -1,45 +1,51 @@
 import { SERVER_URL } from '@config'
-import { HubspotAuthInfo, HubspotState } from '@interfaces'
+import { TokenType } from '@prisma/client'
 import { NetworkSettingsRepository } from '@repositories'
 import { Network } from '@tribeplatform/gql-client/types'
-import { getNetworkUrl, getSlackAppUrl, signJwt } from '@utils'
+import { getNetworkUrl, getSlackAppUrl, globalLogger, signJwt } from '@utils'
 
-export const connectToHubspot = async (options: {
-  authInfo: HubspotAuthInfo
-  state: HubspotState
+import { SlackAuthProfile, SlackState } from '@/interfaces'
+
+const logger = globalLogger.setContext(`SlackOAuthLogics`)
+
+export const connectToSlack = async (options: {
+  authProfile: SlackAuthProfile
+  state: SlackState
 }) => {
-  const { authInfo, state } = options
+  logger.log('connectToSlack called', { options })
+  const { authProfile, state } = options
   const { networkId, actorId } = state
   const {
-    // eslint-disable-next-line @typescript-eslint/naming-convention
-    profile: { hub_domain, hub_id, user_id },
-    accessToken: token,
-    refreshToken: refresh,
-  } = authInfo
+    app_id: appId,
+    authed_user: memberToken,
+    bot_user_id: botId,
+    access_token: botAccessToken,
+    scope: botScope,
+    team,
+    is_enterprise_install: isEnterpriseInstall,
+  } = authProfile
   await NetworkSettingsRepository.upsert(networkId, {
-    memberId: actorId,
-    userId: String(user_id),
-    refresh,
-    token,
-    hubId: String(hub_id),
-    domain: hub_domain,
-    eventsSettings: {
-      enabled: false,
+    memberId: String(actorId),
+    appId,
+    memberToken: {
+      id: memberToken.id,
+      accessToken: memberToken.access_token,
+      tokenType: TokenType.MEMBER,
+      refreshToken: null,
+      scope: memberToken.scope,
     },
-    listsSettings: {
-      enabled: false,
+    botToken: {
+      id: botId,
+      accessToken: botAccessToken,
+      tokenType: TokenType.BOT,
+      refreshToken: null,
+      scope: botScope,
     },
-    contactsSettings: {
-      fields: [],
-      create: false,
-      fieldCategory: null,
+    team: {
+      id: team.id,
+      name: team.name,
     },
-    ticketCreationSettings: {
-      enabled: false,
-    },
-    federatedSearchSettings: {
-      enabled: false,
-    },
+    isEnterpriseInstall,
   })
 }
 
