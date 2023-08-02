@@ -12,31 +12,39 @@ const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize'
 const SLACK_AUTHENTICATE_URL = 'https://slack.com/api/oauth.v2.access'
 
 export const authorizeSlackMiddleware = (req: Request, res: Response) => {
-  return res.redirect(
-    `${SLACK_AUTHORIZE_URL}?scope=${BOT_SCOPES.join(',')}&user_scope=${USER_SCOPES.join(
-      ',',
-    )}&client_id=${SLACK_CLIENT_ID}&state=${req.query.jwt}`,
-  )
+  const slackUrl = new URL(SLACK_AUTHORIZE_URL)
+  slackUrl.searchParams.append('client_id', SLACK_CLIENT_ID)
+  if (req.query.jwt) {
+    slackUrl.searchParams.append('state', req.query.jwt as string)
+  }
+  if (BOT_SCOPES.length > 0) {
+    slackUrl.searchParams.append('scope', BOT_SCOPES.join(','))
+  }
+  if (USER_SCOPES.length > 0) {
+    slackUrl.searchParams.append('user_scope', USER_SCOPES.join(','))
+  }
+  return res.redirect(slackUrl.href)
 }
 
 export const authenticateSlackMiddleware = async (req: Request, res: Response, next) => {
   if (req.query.code) {
-    const response = await axios.post(
-      SLACK_AUTHENTICATE_URL,
-      `client_id=${encodeURIComponent(
-        SLACK_CLIENT_ID,
-      )}&client_secret=${encodeURIComponent(
-        SLACK_CLIENT_SECRET,
-      )}&grant_type=authorization_code&redirect_uri=${encodeURIComponent(
-        `${SERVER_URL}/oauth/callback`,
-      )}&code=${encodeURIComponent(req.query.code as string)}`,
-      {
-        headers: {
-          // eslint-disable-next-line @typescript-eslint/naming-convention
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
+    const params = new URLSearchParams({
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      client_id: SLACK_CLIENT_ID,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      client_secret: SLACK_CLIENT_SECRET,
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      grant_type: 'authorization_code',
+      // eslint-disable-next-line @typescript-eslint/naming-convention
+      redirect_uri: `${SERVER_URL}/oauth/callback`,
+      code: req.query.code as string,
+    })
+    const response = await axios.post(SLACK_AUTHENTICATE_URL, params, {
+      headers: {
+        // eslint-disable-next-line @typescript-eslint/naming-convention
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
-    )
+    })
     // eslint-disable-next-line require-atomic-updates
     req.user = response.data
     logger.log('response', { response: response.data })
