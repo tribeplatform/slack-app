@@ -1,4 +1,3 @@
-export * from './bettermode-oauth.logics'
 export * from './error.logics'
 export * from './federated-search.logics'
 export * from './installation.logics'

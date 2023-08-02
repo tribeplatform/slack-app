@@ -25,6 +25,7 @@
   "dependencies": {
     "@hubspot/api-client": "^9.0.0",
     "@prisma/client": "4.16.2",
+    "@slack/web-api": "^6.8.1",
     "@tribeplatform/gql-client": "^2.2.8",
     "@tribeplatform/node-logger": "^1.1.0",
     "@tribeplatform/slate-kit": "^1.2.3",
