@@ -23,6 +23,7 @@ export const authorizeSlackMiddleware = (req: Request, res: Response) => {
   if (USER_SCOPES.length > 0) {
     slackUrl.searchParams.append('user_scope', USER_SCOPES.join(','))
   }
+  slackUrl.searchParams.append('redirect_uri', `${SERVER_URL}/oauth/callback`)
   return res.redirect(slackUrl.href)
 }
 
