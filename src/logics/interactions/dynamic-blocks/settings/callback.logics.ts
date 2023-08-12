@@ -22,6 +22,7 @@ import { getConnectedSettingsSlate } from './slates/connected-settings.slate'
 import { getConnectSlackUrl } from '@/logics'
 import { PrismaClient } from '@prisma/client'
 import { randomUUID } from 'crypto'
+import { getConnectionRemoveModalSlate } from './slates/remove-connection-modal.slate'
 
 const logger = globalLogger.setContext(`SettingsDynamicBlock`)
 
@@ -88,7 +89,7 @@ const getAuthRevokeCallbackResponse = async (
   return getDisconnectedSettingsResponse({ interactionId })
 }
 
-export const getOpenChannelModalCallbackResponse = async (
+export const getOpenConnectionModalCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
   const {
@@ -155,7 +156,7 @@ export const getOpenChannelModalCallbackResponse = async (
       },
     ],
     {
-      callbackId: SettingsBlockCallback.UpsertChannel,
+      callbackId: SettingsBlockCallback.UpsertConnection,
       action: {
         autoDisabled: false,
         text: 'Create',
@@ -184,7 +185,7 @@ export const getOpenChannelModalCallbackResponse = async (
   }
 }
 
-export const getUpsertChannelCallbackResponse = async (
+export const getUpsertConnectionCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
   const {
@@ -196,7 +197,7 @@ export const getUpsertChannelCallbackResponse = async (
     },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  logger.log('getUpsertChannelCallbackResponse called', { webhook })
+  logger.log('getUpsertConnectionCallbackResponse called', { webhook })
   //upsert the collected data into db
   await ConnectionRepository.create({
     memberId: String(actorId),
@@ -273,6 +274,40 @@ export const getSearchSlackChannelCallbackResponse = async (
   }
 }
 
+export const getRemoveConnectionModalCallBackResponse = async (
+  webhook: InteractionWebhook,
+): Promise<InteractionWebhookResponse> => {
+  const {
+    data: { interactionId },
+  } = webhook
+
+  const slate = getConnectionRemoveModalSlate()
+  return {
+    type: WebhookType.Interaction,
+    status: WebhookStatus.Succeeded,
+    data: {
+      interactions: [
+        {
+          id: interactionId,
+          type: InteractionType.OpenModal,
+          props: {
+            title: 'Remove Connection',
+            size: 'md',
+          },
+          slate: rawSlateToDto(slate),
+        },
+      ],
+    },
+  }
+}
+
+export const getRemoveConnectionCallBackResponse = async (
+  webhook: InteractionWebhook,
+): Promise<InteractionWebhookResponse> => {
+  logger.log(webhook)
+  return null
+}
+
 export const getCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
@@ -285,12 +320,16 @@ export const getCallbackResponse = async (
       return getAuthRedirectCallbackResponse(webhook)
     case SettingsBlockCallback.AuthRevoke:
       return getAuthRevokeCallbackResponse(webhook)
-    case SettingsBlockCallback.OpenChannelModal:
-      return getOpenChannelModalCallbackResponse(webhook)
-    case SettingsBlockCallback.UpsertChannel:
-      return getUpsertChannelCallbackResponse(webhook)
+    case SettingsBlockCallback.OpenConnectionModal:
+      return getOpenConnectionModalCallbackResponse(webhook)
+    case SettingsBlockCallback.UpsertConnection:
+      return getUpsertConnectionCallbackResponse(webhook)
     case SettingsBlockCallback.SearchSlackChannel:
       return getSearchSlackChannelCallbackResponse(webhook)
+    case SettingsBlockCallback.OpenConnectionRemoveModal:
+      return getRemoveConnectionModalCallBackResponse(webhook)
+    case SettingsBlockCallback.RemoveConnection:
+      return getRemoveConnectionCallBackResponse(webhook)
     default:
       return getInteractionNotSupportedError('callbackId', callbackId)
   }

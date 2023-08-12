@@ -114,7 +114,7 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         size: 'sm',
         rounded: 'true',
-        callbackId: SettingsBlockCallback.OpenModal,
+        callbackId: SettingsBlockCallback.OpenConnectionRemoveModal,
         text: 'remove',
         variant: 'danger',
       },

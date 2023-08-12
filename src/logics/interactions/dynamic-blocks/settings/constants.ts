@@ -8,8 +8,11 @@ export enum SettingsBlockCallback {
   AuthRevoke = 'auth-revoke',
   SearchSlackChannel = 'search-slack-channel',
   // Slack specific
-  OpenChannelModal = 'open-channel-modal',
-  UpsertChannel = 'upsert-channel',
+  OpenConnectionModal = 'open-connection-modal',
+  OpenConnectionRemoveModal = 'open-channel-remove-modal',
+
+  RemoveConnection = 'remove-connection',
+  UpsertConnection = 'upsert-channel',
 }
 
 export interface ChannelFieldOption {

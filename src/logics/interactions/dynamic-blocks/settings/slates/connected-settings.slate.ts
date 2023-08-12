@@ -23,7 +23,7 @@ export const getConnectedSettingsSlate = (options: {
       ...getConnectedChannelsSettingsBlocks({
         id: 'channels',
         action: 'New Connection',
-        actionCallbackId: SettingsBlockCallback.OpenChannelModal,
+        actionCallbackId: SettingsBlockCallback.OpenConnectionModal,
         actionVariant: 'primary',
         connections,
       }),

@@ -18,14 +18,14 @@ export const handlePostSubscription = async (
     data: { verb },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  const {
-    eventsSettings: { enabled: eventsEnabled },
-  } = settings
+  // const {
+  //   eventsSettings: { enabled: eventsEnabled },
+  // } = settings
   switch (verb) {
     case EventVerb.PUBLISHED:
-      if (eventsEnabled) {
-        await handleCreatePostEvent({ settings, webhook })
-      }
+      // if (eventsEnabled) {
+      await handleCreatePostEvent({ settings, webhook })
+      // }
       break
     default:
       break
