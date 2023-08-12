@@ -1,3 +1,4 @@
+export * from './blockParser'
 export * from './field.utils'
 export * from './jwt.utils'
 export * from './logger.utils'

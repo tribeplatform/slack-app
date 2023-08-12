@@ -6,6 +6,7 @@ import { ChannelField, SettingsBlockCallback } from '../constants'
 
 export const getChannelModalSlate = (
   id: string,
+  // actionCallbackId: SettingsBlockCallback,
   fields: ChannelField[],
   options: {
     callbackId?: SettingsBlockCallback
@@ -50,8 +51,8 @@ export const getChannelModalSlate = (
           ...(field.type === 'Select' && {
             value: field.defaultValue,
             items: field.options,
-            ...(field.callbackId && {
-              callbackId: field.callbackId,
+            ...(field.dataCallbackId && {
+              dataCallbackId: field.dataCallbackId,
               isSearchable: field.isSearchable,
               appId: field.appId,
             }),

@@ -39,7 +39,8 @@ export const limitString = (text: string, limit: number): string => {
   }
 }
 
-export const createHyperlink = (content: string, url: string) => `[${content}](${url})`
+// export const createHyperlink = (content: string, url: string) => `[${content}](${url})`
+
 export const turndownString = (text: string): string => {
   const turndownService = new TurndownService()
   return turndownService.turndown(text)

@@ -6,6 +6,7 @@ import { globalLogger } from '@utils'
 
 import { getInteractionNotSupportedError } from '../../../error.logics'
 
+import { PrismaClient } from '@prisma/client'
 import { getCallbackResponse } from './callback.logics'
 import { getConnectedSettingsResponse, getDisconnectedSettingsResponse } from './helpers'
 
@@ -40,8 +41,17 @@ const getNetworkSettingsInteractionResponse = async (
       errorMessage: 'Interaction ID is required.',
     }
   }
+  try {
+    const prisma = new PrismaClient()
+    const connections = await prisma.connection.findMany()
+    return getConnectedSettingsResponse({ interactionId, settings, connections })
+  } catch (e) {
+    throw e
+  }
+  const prisma = new PrismaClient()
+  const connections = await prisma.connection.findMany()
 
-  return getConnectedSettingsResponse({ interactionId, settings })
+  return getConnectedSettingsResponse({ interactionId, settings, connections })
 }
 
 export const getSettingsInteractionResponse = async (

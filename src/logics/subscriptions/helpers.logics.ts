@@ -226,10 +226,10 @@ export const handleCreatePostEvent = async (options: {
     title: title || `Added a ${post?.repliedToId ? 'reply' : 'post'}`,
     summary:
       summary ||
-      `${createHyperlink(
-        post?.repliedToId ? post?.repliedTo.title : post?.title,
-        post?.url,
-      )}${turndownString(`<br/>${post?.shortContent}`)}`,
+      `${createHyperlink({
+        text: post?.repliedToId ? post?.repliedTo.title : post?.title,
+        url: post?.url,
+      })}${turndownString(`<br/>${post?.shortContent}`)}`,
     settings,
     memberId: actor?.id,
     time,

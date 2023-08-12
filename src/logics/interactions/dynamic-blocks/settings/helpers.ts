@@ -1,6 +1,6 @@
 import { InteractionType, WebhookStatus, WebhookType } from '@enums'
 import { InteractionWebhookResponse } from '@interfaces'
-import { NetworkSettings } from '@prisma/client'
+import { Connection, NetworkSettings } from '@prisma/client'
 import { rawSlateToDto } from '@tribeplatform/slate-kit/utils'
 
 import { getNotConnectedSettingsSlate } from './slates'
@@ -9,11 +9,13 @@ import { getConnectedSettingsSlate } from './slates/connected-settings.slate'
 export const getConnectedSettingsResponse = async (options: {
   interactionId: string
   settings: NetworkSettings
+  connections: Connection[]
 }): Promise<InteractionWebhookResponse> => {
-  const { interactionId, settings } = options
+  const { interactionId, settings, connections } = options
 
   const slate = getConnectedSettingsSlate({
     settings,
+    connections,
   })
   return {
     type: WebhookType.Interaction,
