@@ -5,10 +5,9 @@ import {
   InteractionWebhookResponse,
   RedirectInteractionProps,
 } from '@interfaces'
-import { NetworkSettingsRepository } from '@repositories'
+import { ConnectionRepository, NetworkSettingsRepository } from '@repositories'
 import { rawSlateToDto } from '@tribeplatform/slate-kit/utils'
-import { BASIC_FIELDS_KEYS, BASIC_FIELDS_MAPPING, globalLogger } from '@utils'
-import { difference } from 'lodash'
+import { globalLogger } from '@utils'
 
 import {
   getInteractionNotSupportedError,
@@ -16,11 +15,13 @@ import {
 } from '../../../error.logics'
 
 import { ChannelFieldOption, ChannelFieldType, SettingsBlockCallback } from './constants'
-import { getConnectedSettingsResponse, getDisconnectedSettingsResponse } from './helpers'
+import { getDisconnectedSettingsResponse } from './helpers'
 import { getChannelModalSlate } from './slates/channel-modal.slate'
 import { getConnectedSettingsSlate } from './slates/connected-settings.slate'
 
 import { getConnectSlackUrl } from '@/logics'
+import { PrismaClient } from '@prisma/client'
+import { randomUUID } from 'crypto'
 
 const logger = globalLogger.setContext(`SettingsDynamicBlock`)
 
@@ -87,159 +88,12 @@ const getAuthRevokeCallbackResponse = async (
   return getDisconnectedSettingsResponse({ interactionId })
 }
 
-const getActivateContactIntegrationCallbackResponse = async (
-  webhook: InteractionWebhook,
-): Promise<InteractionWebhookResponse> => {
-  logger.debug('getAuthRedirectCallbackResponse called', { webhook })
-  const {
-    networkId,
-    data: { interactionId, inputs },
-  } = webhook
-  const { fieldCategory, create } = inputs as {
-    fieldCategory: string
-    create: boolean
-  }
-  let settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  const hubspotClient = await getHubspotClient(settings)
-  let propertyGroup = await hubspotClient.getPropertyGroupByName(fieldCategory)
-  if (!propertyGroup) {
-    propertyGroup = await hubspotClient.createPropertyGroup(fieldCategory)
-  }
-
-  const gqlClient = await getNetworkClient(networkId)
-  const network = await gqlClient.query({
-    name: 'network',
-    args: 'basic',
-  })
-
-  const fields = BASIC_FIELDS_KEYS
-  const fieldsMapping = BASIC_FIELDS_MAPPING
-  network?.memberFields?.fields?.forEach(field => {
-    const key = `custom_${field.key}`
-    fields.push(key)
-    fieldsMapping[key] = field.name
-  })
-
-  const availableProperties = await hubspotClient.getProperties(fieldCategory, fields)
-  const newFields = difference(
-    fields,
-    availableProperties.map(property =>
-      property.name.replace(`${property.groupName}_`, ''),
-    ),
-  )
-  await hubspotClient.createProperties(fieldCategory, newFields, fieldsMapping)
-  settings = await NetworkSettingsRepository.update(networkId, {
-    contactsSettings: {
-      create,
-      fieldCategory,
-      fields,
-    },
-  })
-
-  logger.log('getAuthRedirectCallbackResponse called', { settings })
-
-  return getConnectedSettingsResponse({ interactionId, settings })
-}
-
-export const getActivateCaseIntegrationCallbackResponse = async (
-  webhook: InteractionWebhook,
-): Promise<InteractionWebhookResponse> => {
-  const {
-    networkId,
-    data: {
-      interactionId,
-      inputs: { value },
-    },
-  } = webhook
-
-  let settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  settings = await NetworkSettingsRepository.update(networkId, {
-    ticketCreationSettings: {
-      enabled: value as boolean,
-    },
-  })
-  return getConnectedSettingsResponse({
-    interactionId,
-    settings,
-  })
-}
-
-export const getActivateFederatedSearchIntegrationCallbackResponse = async (
-  webhook: InteractionWebhook,
-): Promise<InteractionWebhookResponse> => {
-  const {
-    networkId,
-    data: {
-      interactionId,
-      inputs: { value },
-    },
-  } = webhook
-
-  let settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  settings = await NetworkSettingsRepository.update(networkId, {
-    federatedSearchSettings: {
-      enabled: value as boolean,
-    },
-  })
-  return getConnectedSettingsResponse({
-    interactionId,
-    settings,
-  })
-}
-
-export const getActivateActivityIntegrationCallbackResponse = async (
-  webhook: InteractionWebhook,
-): Promise<InteractionWebhookResponse> => {
-  const {
-    networkId,
-    data: {
-      interactionId,
-      inputs: { value },
-    },
-  } = webhook
-
-  let settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  settings = await NetworkSettingsRepository.update(networkId, {
-    eventsSettings: {
-      enabled: value as boolean,
-    },
-  })
-  return getConnectedSettingsResponse({
-    interactionId,
-    settings,
-  })
-}
-
-export const getContactCreationToggleCallbackResponse = async (
-  webhook: InteractionWebhook,
-): Promise<InteractionWebhookResponse> => {
-  const {
-    networkId,
-    data: {
-      interactionId,
-      inputs: { value },
-    },
-  } = webhook
-
-  let settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  settings = await NetworkSettingsRepository.update(networkId, {
-    contactsSettings: {
-      ...settings.contactsSettings,
-      create: value as boolean,
-    },
-  })
-  return getConnectedSettingsResponse({
-    interactionId,
-    settings,
-  })
-}
-
 export const getOpenChannelModalCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
   const {
     networkId,
-    data: { interactionId },
+    data: { interactionId, appId },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
   const [gqlClient, slackClient] = await Promise.all([
@@ -247,20 +101,26 @@ export const getOpenChannelModalCallbackResponse = async (
     getSlackBotClient(settings),
   ])
 
-  const [spaces, channels] = await Promise.all([
+  var [spaces, channels] = await Promise.all([
     gqlClient.query({
       name: 'spaces',
       args: {
         variables: {
           limit: 20,
+          // after:
         },
         fields: {
           nodes: 'basic',
+          // edges: 'basic',
+          // pageInfo: 'basic',
         },
       },
     }),
     slackClient.getChannels(),
   ])
+  // spaces.edges[0].cursor
+  // spaces.pageInfo.endCursor
+
   const channelOptions: ChannelFieldOption[] = channels?.channels?.map(channel => ({
     text: `${channel.is_channel ? '#' : '@'}${channel.name}`,
     value: channel.id,
@@ -272,19 +132,26 @@ export const getOpenChannelModalCallbackResponse = async (
   }))
 
   const slate = getChannelModalSlate(
-    interactionId,
+    randomUUID(),
     [
       {
         id: 'channel',
         type: ChannelFieldType.Select,
         label: 'Channel',
+        isSearchable: true,
+        dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
         options: channelOptions,
+        appId,
       },
       {
         id: 'spaces',
         type: ChannelFieldType.Select,
         label: 'Spaces',
         options: spacesOptions,
+        isSearchable: true,
+        dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
+        appId,
+        defaultValue: spacesOptions[0].value,
       },
     ],
     {
@@ -297,6 +164,7 @@ export const getOpenChannelModalCallbackResponse = async (
       },
     },
   )
+
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -315,18 +183,29 @@ export const getOpenChannelModalCallbackResponse = async (
     },
   }
 }
+
 export const getUpsertChannelCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
   const {
     networkId,
     data: {
+      actorId,
       interactionId,
       inputs: { channel, spaces },
     },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
   logger.log('getUpsertChannelCallbackResponse called', { webhook })
+  //upsert the collected data into db
+  await ConnectionRepository.create({
+    memberId: String(actorId),
+    networkId: String(networkId),
+    channelId: String(channel),
+    spaceIds: String(spaces),
+  })
+
+  // bot joins and sends welcome message
   const [slackClient] = await Promise.all([getSlackBotClient(settings)])
   await slackClient.join({
     channel: channel as string,
@@ -335,8 +214,16 @@ export const getUpsertChannelCallbackResponse = async (
     channel: channel as string,
     text: 'Hello world from slack bot',
   })
+  // await new SlackService(webhook.accessToken).sendWelcomeMessage(options);
+  //get all the connections from db and pass it to the slate
+  const prisma = new PrismaClient()
+  const connections = await prisma.connection.findMany()
+  logger.log(connections)
+
+  //display the connected settings slate
   const slate = getConnectedSettingsSlate({
     settings,
+    connections,
   })
   return {
     type: WebhookType.Interaction,
@@ -357,6 +244,35 @@ export const getUpsertChannelCallbackResponse = async (
   }
 }
 
+export const getSearchSlackChannelCallbackResponse = async (
+  webhook: InteractionWebhook,
+): Promise<InteractionWebhookResponse> => {
+  const {
+    networkId,
+    data: {
+      actorId,
+      interactionId,
+      inputs: { channel, spaces },
+    },
+  } = webhook
+  logger.log(webhook)
+  return {
+    type: WebhookType.Interaction,
+    status: WebhookStatus.Succeeded,
+    data: {
+      interactions: [
+        {
+          id: 'data',
+          type: InteractionType.Data,
+          props: {
+            items: [{ text: 'Bettermode Dev Portal', value: '1N25ZZyz5c' }],
+          },
+        },
+      ],
+    },
+  }
+}
+
 export const getCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
@@ -369,20 +285,12 @@ export const getCallbackResponse = async (
       return getAuthRedirectCallbackResponse(webhook)
     case SettingsBlockCallback.AuthRevoke:
       return getAuthRevokeCallbackResponse(webhook)
-    case SettingsBlockCallback.ActivateContactIntegration:
-      return getActivateContactIntegrationCallbackResponse(webhook)
-    case SettingsBlockCallback.ActivateTicketIntegration:
-      return getActivateCaseIntegrationCallbackResponse(webhook)
-    case SettingsBlockCallback.ActivateActivityIntegration:
-      return getActivateActivityIntegrationCallbackResponse(webhook)
-    case SettingsBlockCallback.UpdateContactCreationIntegration:
-      return getContactCreationToggleCallbackResponse(webhook)
-    case SettingsBlockCallback.ActivateFederatedSearchIntegration:
-      return getActivateFederatedSearchIntegrationCallbackResponse(webhook)
     case SettingsBlockCallback.OpenChannelModal:
       return getOpenChannelModalCallbackResponse(webhook)
     case SettingsBlockCallback.UpsertChannel:
       return getUpsertChannelCallbackResponse(webhook)
+    case SettingsBlockCallback.SearchSlackChannel:
+      return getSearchSlackChannelCallbackResponse(webhook)
     default:
       return getInteractionNotSupportedError('callbackId', callbackId)
   }
