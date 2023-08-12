@@ -6,7 +6,7 @@ import { Request, Response } from 'express'
 
 const logger = globalLogger.setContext(`HubspotOAuthMiddleware`)
 
-const BOT_SCOPES = ['chat:write', 'channels:read', 'channels:join']
+const BOT_SCOPES = ['chat:write', 'channels:read', 'channels:join', 'groups:read']
 const USER_SCOPES = ['identity.basic']
 const SLACK_AUTHORIZE_URL = 'https://slack.com/oauth/v2/authorize'
 const SLACK_AUTHENTICATE_URL = 'https://slack.com/api/oauth.v2.access'

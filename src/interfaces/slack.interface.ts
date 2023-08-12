@@ -1,3 +1,5 @@
+import { Types } from '@tribeplatform/gql-client'
+
 // import { SFieldInputType } from '@enums'
 enum SlackTokenType {
   Bot = 'bot',
@@ -45,4 +47,22 @@ declare global {
       user?: SlackAuthProfile
     }
   }
+}
+
+export interface UpdateMessagePayload {
+  event: string
+  member?: Types.Member
+  actor?: Types.Member
+  space?: Types.Space
+  post?: Types.Post
+  network: Types.Network
+  context?: boolean
+}
+
+export interface PostMessageArguments {
+  channel: string
+  username?: string
+  image?: string
+  text: string
+  blocks?: any
 }
