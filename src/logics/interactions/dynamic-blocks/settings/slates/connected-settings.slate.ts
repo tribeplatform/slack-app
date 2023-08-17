@@ -20,9 +20,10 @@ export const getConnectedSettingsSlate = (options: {
         props: { spacing: 'md' },
         children: ['channels', 'auth'],
       },
+
       ...getConnectedChannelsSettingsBlocks({
         id: 'channels',
-        action: 'New Connection',
+        action: connections.length < 5 ? 'New Connection' : null,
         actionCallbackId: SettingsBlockCallback.OpenConnectionModal,
         actionVariant: 'primary',
         connections,

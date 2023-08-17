@@ -1,7 +1,7 @@
 import { RawSlateDto } from '@tribeplatform/slate-kit/dtos'
 
 // import { CreateTicketCallback } from '../constants'
-import { ChannelField, SettingsBlockCallback } from '../constants'
+import { ChannelField } from '../constants'
 // import { Chnn } from '../interfaces'
 
 export const getChannelModalSlate = (
@@ -9,7 +9,8 @@ export const getChannelModalSlate = (
   // actionCallbackId: SettingsBlockCallback,
   fields: ChannelField[],
   options: {
-    callbackId?: SettingsBlockCallback
+    // callbackId?: SettingsBlockCallback
+    callbackId?: string
     action: {
       enabled?: boolean
       text?: string
@@ -19,6 +20,29 @@ export const getChannelModalSlate = (
   },
 ): RawSlateDto => {
   const { action, callbackId } = options
+
+  const toggleContainer = {
+    id: 'toggleContainer',
+    name: 'Container',
+    props: {
+      alignment: 'center',
+      direction: 'vertical',
+      spacing: 'lg',
+    },
+    children: ['postPublishedToggle'],
+  }
+  const postPublishedToggle = {
+    id: 'postPublishedToggle',
+    name: 'Toggle',
+    props: {
+      label: 'Post Published',
+      size: 'lg',
+      required: 'false',
+      checked: 'false',
+    },
+    children: [],
+  }
+
   return {
     rootBlock: id,
     blocks: [
@@ -26,8 +50,7 @@ export const getChannelModalSlate = (
         id,
         name: 'Form',
         props: {
-          callbackId:
-            callbackId || SettingsBlockCallback.UpdateContactCreationIntegration,
+          callbackId: callbackId,
           defaultValues: fields.reduce(
             (acc, field) => ({ ...acc, [field.id]: field.defaultValue }),
             {},
@@ -39,7 +62,7 @@ export const getChannelModalSlate = (
         id: 'fields',
         name: 'Container',
         props: { spacing: 'sm' },
-        children: [...fields.map(field => field.id), 'submit'],
+        children: [...fields.map(field => field.id), 'submit', 'toggleContainer'],
       },
       ...fields.map(field => ({
         id: field.id,
@@ -68,6 +91,8 @@ export const getChannelModalSlate = (
           }),
         },
       })),
+      // toggleContainer,
+      // postPublishedToggle,
       ...(action?.enabled
         ? [
             {

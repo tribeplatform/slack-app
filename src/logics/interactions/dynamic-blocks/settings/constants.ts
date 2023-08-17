@@ -9,7 +9,8 @@ export enum SettingsBlockCallback {
   SearchSlackChannel = 'search-slack-channel',
   // Slack specific
   OpenConnectionModal = 'open-connection-modal',
-  OpenConnectionRemoveModal = 'open-channel-remove-modal',
+  OpenConnectionRemoveModal = 'open-connection-remove-modal',
+  OpenConnectionEditModal = 'open-connection-edit-modal',
 
   RemoveConnection = 'remove-connection',
   UpsertConnection = 'upsert-channel',

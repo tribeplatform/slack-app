@@ -17,11 +17,10 @@ import {
 import { ChannelFieldOption, ChannelFieldType, SettingsBlockCallback } from './constants'
 import { getDisconnectedSettingsResponse } from './helpers'
 import { getChannelModalSlate } from './slates/channel-modal.slate'
-import { getConnectedSettingsSlate } from './slates/connected-settings.slate'
 
 import { getConnectSlackUrl } from '@/logics'
 import { PrismaClient } from '@prisma/client'
-import { randomUUID } from 'crypto'
+import { randomBytes, randomUUID } from 'crypto'
 import { getConnectionRemoveModalSlate } from './slates/remove-connection-modal.slate'
 
 const logger = globalLogger.setContext(`SettingsDynamicBlock`)
@@ -91,6 +90,7 @@ const getAuthRevokeCallbackResponse = async (
 
 export const getOpenConnectionModalCallbackResponse = async (
   webhook: InteractionWebhook,
+  connectionId?: string,
 ): Promise<InteractionWebhookResponse> => {
   const {
     networkId,
@@ -132,6 +132,16 @@ export const getOpenConnectionModalCallbackResponse = async (
     value: space.id,
   }))
 
+  var savedSpaces: string //string[]
+  var savedChannels: string //string[]
+
+  if (connectionId) {
+    const client = new PrismaClient()
+    const connection = client.connection.findUnique({ where: { id: connectionId } })
+    savedSpaces = (await connection).spaceIds
+    savedChannels = (await connection).channelId
+  }
+
   const slate = getChannelModalSlate(
     randomUUID(),
     [
@@ -139,9 +149,11 @@ export const getOpenConnectionModalCallbackResponse = async (
         id: 'channel',
         type: ChannelFieldType.Select,
         label: 'Channel',
+        options: channelOptions,
         isSearchable: true,
         dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
-        options: channelOptions,
+        defaultValue:
+          typeof savedChannels != 'undefined' && savedChannels ? savedChannels : null,
         appId,
       },
       {
@@ -151,21 +163,26 @@ export const getOpenConnectionModalCallbackResponse = async (
         options: spacesOptions,
         isSearchable: true,
         dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
+        // defaultValue: spacesOptions[0].value,
+        defaultValue:
+          typeof savedSpaces != 'undefined' && savedSpaces ? savedSpaces : null,
         appId,
-        defaultValue: spacesOptions[0].value,
       },
     ],
     {
-      callbackId: SettingsBlockCallback.UpsertConnection,
+      callbackId:
+        typeof connectionId != 'undefined' && connectionId
+          ? SettingsBlockCallback.UpsertConnection + connectionId
+          : SettingsBlockCallback.UpsertConnection,
       action: {
         autoDisabled: false,
-        text: 'Create',
+        text: 'Submit',
         variant: 'primary',
         enabled: true,
       },
     },
   )
-
+  //SettingsBlockCallback.UpsertConnection
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -187,6 +204,7 @@ export const getOpenConnectionModalCallbackResponse = async (
 
 export const getUpsertConnectionCallbackResponse = async (
   webhook: InteractionWebhook,
+  connectionId?: string,
 ): Promise<InteractionWebhookResponse> => {
   const {
     networkId,
@@ -198,8 +216,23 @@ export const getUpsertConnectionCallbackResponse = async (
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
   logger.log('getUpsertConnectionCallbackResponse called', { webhook })
-  //upsert the collected data into db
-  await ConnectionRepository.create({
+
+  //if it was a new connection
+  if (!connectionId) {
+    //grab all the id's to existing connections
+    const client = new PrismaClient()
+    const allConnections = await client.connection.findMany()
+    const allConnectionIds = allConnections.map(connection => connection.id)
+    var randomId: string //create a  new  id
+    do {
+      //create a new connection id
+      const bytes = randomBytes(12)
+      randomId = bytes.toString('hex')
+    } while (allConnectionIds.includes(randomId))
+    connectionId = randomId
+  }
+
+  await ConnectionRepository.upsert(connectionId, {
     memberId: String(actorId),
     networkId: String(networkId),
     channelId: String(channel),
@@ -215,17 +248,12 @@ export const getUpsertConnectionCallbackResponse = async (
     channel: channel as string,
     text: 'Hello world from slack bot',
   })
-  // await new SlackService(webhook.accessToken).sendWelcomeMessage(options);
-  //get all the connections from db and pass it to the slate
+
+  //print all connections ////////(remove this  for production )
   const prisma = new PrismaClient()
   const connections = await prisma.connection.findMany()
-  logger.log(connections)
-
-  //display the connected settings slate
-  const slate = getConnectedSettingsSlate({
-    settings,
-    connections,
-  })
+  logger.log('all connections', connections)
+  // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -236,9 +264,12 @@ export const getUpsertConnectionCallbackResponse = async (
           type: InteractionType.Close,
         },
         {
-          id: 'interactionId',
-          type: InteractionType.Show,
-          slate: rawSlateToDto(slate),
+          id: interactionId + randomUUID(),
+          type: InteractionType.Reload,
+          // slate: rawSlateToDto(slate),
+          props: {
+            dynamicBlockKeys: ['settings'],
+          },
         },
       ],
     },
@@ -256,6 +287,7 @@ export const getSearchSlackChannelCallbackResponse = async (
       inputs: { channel, spaces },
     },
   } = webhook
+
   logger.log(webhook)
   return {
     type: WebhookType.Interaction,
@@ -263,7 +295,7 @@ export const getSearchSlackChannelCallbackResponse = async (
     data: {
       interactions: [
         {
-          id: 'data',
+          id: interactionId,
           type: InteractionType.Data,
           props: {
             items: [{ text: 'Bettermode Dev Portal', value: '1N25ZZyz5c' }],
@@ -276,12 +308,13 @@ export const getSearchSlackChannelCallbackResponse = async (
 
 export const getRemoveConnectionModalCallBackResponse = async (
   webhook: InteractionWebhook,
+  connectionId: string,
 ): Promise<InteractionWebhookResponse> => {
   const {
     data: { interactionId },
   } = webhook
 
-  const slate = getConnectionRemoveModalSlate()
+  const slate = getConnectionRemoveModalSlate(connectionId)
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -303,9 +336,38 @@ export const getRemoveConnectionModalCallBackResponse = async (
 
 export const getRemoveConnectionCallBackResponse = async (
   webhook: InteractionWebhook,
+  connectionId: string,
 ): Promise<InteractionWebhookResponse> => {
   logger.log(webhook)
-  return null
+  const {
+    data: { interactionId },
+  } = webhook
+
+  const prisma = new PrismaClient()
+  const deletedConnection = await prisma.connection.delete({
+    where: { id: connectionId },
+  })
+
+  return {
+    type: WebhookType.Interaction,
+    status: WebhookStatus.Succeeded,
+    data: {
+      interactions: [
+        {
+          id: interactionId,
+          type: InteractionType.Close,
+        },
+        {
+          id: interactionId + randomUUID(),
+          type: InteractionType.Reload,
+          // slate: rawSlateToDto(slate),
+          props: {
+            dynamicBlockKeys: ['settings'],
+          },
+        },
+      ],
+    },
+  }
 }
 
 export const getCallbackResponse = async (
@@ -315,21 +377,50 @@ export const getCallbackResponse = async (
   const {
     data: { callbackId },
   } = webhook
+
+  //call back for opening the removeConnection modal
+  if (callbackId.startsWith(SettingsBlockCallback.OpenConnectionRemoveModal)) {
+    const connectionId = callbackId.replace(
+      SettingsBlockCallback.OpenConnectionRemoveModal,
+      '',
+    )
+    return getRemoveConnectionModalCallBackResponse(webhook, connectionId)
+  }
+  //call back for the remove connection button
+  if (callbackId.startsWith(SettingsBlockCallback.RemoveConnection)) {
+    const connectionId = callbackId.replace(SettingsBlockCallback.RemoveConnection, '')
+    return getRemoveConnectionCallBackResponse(webhook, connectionId)
+  }
+  //call back for upsert connection
+  if (callbackId.startsWith(SettingsBlockCallback.UpsertConnection)) {
+    const connectionId = callbackId.replace(SettingsBlockCallback.UpsertConnection, '')
+    if (connectionId.length > 0) {
+      logger.log('A connection is being edditted')
+      return getUpsertConnectionCallbackResponse(webhook, connectionId)
+    }
+    return getUpsertConnectionCallbackResponse(webhook)
+  }
+  //callback for open connection modal
+  if (callbackId.startsWith(SettingsBlockCallback.OpenConnectionModal)) {
+    const connectionId = callbackId.replace(SettingsBlockCallback.OpenConnectionModal, '')
+    if (connectionId.length > 0) {
+      return getOpenConnectionModalCallbackResponse(webhook, connectionId)
+    }
+    return getOpenConnectionModalCallbackResponse(webhook)
+  }
+
   switch (callbackId) {
     case SettingsBlockCallback.AuthRedirect:
       return getAuthRedirectCallbackResponse(webhook)
     case SettingsBlockCallback.AuthRevoke:
       return getAuthRevokeCallbackResponse(webhook)
-    case SettingsBlockCallback.OpenConnectionModal:
-      return getOpenConnectionModalCallbackResponse(webhook)
-    case SettingsBlockCallback.UpsertConnection:
-      return getUpsertConnectionCallbackResponse(webhook)
     case SettingsBlockCallback.SearchSlackChannel:
       return getSearchSlackChannelCallbackResponse(webhook)
-    case SettingsBlockCallback.OpenConnectionRemoveModal:
-      return getRemoveConnectionModalCallBackResponse(webhook)
-    case SettingsBlockCallback.RemoveConnection:
-      return getRemoveConnectionCallBackResponse(webhook)
+    // case SettingsBlockCallback.OpenConnectionModal:
+    //   return getOpenConnectionModalCallbackResponse(webhook)
+    // case SettingsBlockCallback.UpsertConnection:
+    //   return getUpsertConnectionCallbackResponse(webhook)
+
     default:
       return getInteractionNotSupportedError('callbackId', callbackId)
   }

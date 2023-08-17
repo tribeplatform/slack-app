@@ -1,7 +1,7 @@
 import { RawSlateDto } from '@tribeplatform/slate-kit/dtos'
 import { SettingsBlockCallback } from '../constants'
 
-export const getConnectionRemoveModalSlate = (): RawSlateDto => {
+export const getConnectionRemoveModalSlate = (connectionId: string): RawSlateDto => {
   return {
     rootBlock: 'root',
     blocks: [
@@ -59,7 +59,7 @@ export const getConnectionRemoveModalSlate = (): RawSlateDto => {
           size: 'lg',
           text: 'Remove',
           variant: 'danger',
-          callbackId: SettingsBlockCallback.RemoveConnection,
+          callbackId: SettingsBlockCallback.RemoveConnection + connectionId,
         },
         children: [],
       },

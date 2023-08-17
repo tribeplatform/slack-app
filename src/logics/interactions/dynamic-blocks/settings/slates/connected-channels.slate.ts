@@ -11,11 +11,6 @@ export const getConnectedChannelsSettingsBlocks = (options: {
   connections: Connection[]
 }): RawBlockDto[] => {
   const { id, action, actionCallbackId, actionVariant, connections } = options
-  const connectionArr = [
-    { userName: 'ehsan', id: '0123' },
-    { userName: 'shayan', id: '1234' },
-  ]
-
   const blocks = [
     {
       id,
@@ -92,7 +87,7 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         size: 'md',
         direction: 'horizontal',
-        alignment: 'horizontal-reverse',
+        alignment: { horizontal: 'center' },
       },
       children: [`${id}.editButton${index}`, `${id}.removeButton${index}`],
     })),
@@ -102,9 +97,10 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         size: 'sm',
         rounded: 'true',
-        callbackId: SettingsBlockCallback.OpenModal,
+        callbackId: SettingsBlockCallback.OpenConnectionModal + connection.id,
         text: 'edit',
         variant: 'secondary',
+        trailingIcon: 'check-circle',
       },
       children: [],
     })),
@@ -114,35 +110,60 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         size: 'sm',
         rounded: 'true',
-        callbackId: SettingsBlockCallback.OpenConnectionRemoveModal,
+        callbackId: SettingsBlockCallback.OpenConnectionRemoveModal + connection.id,
         text: 'remove',
         variant: 'danger',
       },
       children: [],
     })),
-    {
-      id: `${id}.lowerContainer`,
-      name: 'Container',
-      props: {
-        direction: 'horizontal-reverse',
-        size: 'md',
-        alignment: { vertical: 'center' },
-        shrink: false,
-      },
-      children: [`${id}.action`],
-    },
-    {
-      id: `${id}.action`,
-      name: 'Button',
-      props: {
-        variant: actionVariant,
-        callbackId: actionCallbackId,
-        text: action,
-        size: 'lg',
-      },
-      children: [],
-    },
-  ]
+    ...(action
+      ? [
+          {
+            id: `${id}.lowerContainer`,
+            name: 'Container',
+            props: {
+              direction: 'horizontal-reverse',
+              size: 'md',
+              alignment: { vertical: 'center' },
+              shrink: false,
+            },
+            children: [`${id}.action`],
+          },
 
+          {
+            id: `${id}.action`,
+            name: 'Button',
+            props: {
+              variant: actionVariant,
+              callbackId: actionCallbackId,
+              text: action,
+              size: 'lg',
+              trailingIcon: 'alert-triangle',
+            },
+            children: [],
+          },
+        ]
+      : [
+          {
+            id: `${id}.lowerContainer`,
+            name: 'Container',
+            props: {
+              direction: 'horizontal-reverse',
+              size: 'md',
+              alignment: { vertical: 'center' },
+              shrink: false,
+            },
+            children: [`${id}.action`],
+          },
+          {
+            id: `${id}.action`,
+            name: 'Text',
+            props: {
+              value: 'youre reached the max number of connections',
+            },
+            children: [],
+          },
+        ]),
+  ]
   return blocks
 }
