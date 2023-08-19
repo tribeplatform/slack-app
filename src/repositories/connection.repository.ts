@@ -25,6 +25,9 @@ export const ConnectionRepository = {
   delete: (id: string): Promise<Connection> => {
     return client.connection.delete({ where: { id } })
   },
+  deleteMany: (args?: Prisma.ConnectionDeleteManyArgs): Promise<Prisma.BatchPayload> => {
+    return client.connection.deleteMany(args)
+  },
   findMany: (args?: Prisma.ConnectionFindManyArgs): Promise<Connection[]> => {
     return client.connection.findMany(args)
   },

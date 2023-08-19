@@ -35,7 +35,7 @@ export const getConnectedSettingsSlate = (options: {
       ...getAuthSettingsBlocks({
         id: 'auth',
         action: 'Revoke',
-        actionCallbackId: SettingsBlockCallback.AuthRevoke,
+        actionCallbackId: SettingsBlockCallback.OpenAuthRevokeModal,
         actionVariant: 'danger',
         description:
           'Your app is successfully connected to Slack. To disconnect the integration at any time, simply click on the provided button.',

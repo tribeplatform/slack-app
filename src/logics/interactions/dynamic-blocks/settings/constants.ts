@@ -6,6 +6,8 @@ export enum SettingsBlockCallback {
   Redirect = 'redirect',
   AuthRedirect = 'auth-redirect',
   AuthRevoke = 'auth-revoke',
+  OpenAuthRevokeModal = 'opem-auth-revoke-modal',
+
   SearchSlackChannel = 'search-slack-channel',
   // Slack specific
   OpenConnectionModal = 'open-connection-modal',

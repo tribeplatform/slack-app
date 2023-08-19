@@ -21,6 +21,7 @@ import { getChannelModalSlate } from './slates/channel-modal.slate'
 import { getConnectSlackUrl } from '@/logics'
 import { PrismaClient } from '@prisma/client'
 import { randomBytes, randomUUID } from 'crypto'
+import { getAuthRevokeModalSlate } from './slates/auth-revoke-modal.slate'
 import { getConnectionRemoveModalSlate } from './slates/remove-connection-modal.slate'
 
 const logger = globalLogger.setContext(`SettingsDynamicBlock`)
@@ -69,23 +70,54 @@ const getAuthRedirectCallbackResponse = async (
   })
 }
 
+const getAuthRevokeModalresponse = async (
+  webhook: InteractionWebhook,
+): Promise<InteractionWebhookResponse> => {
+  const {
+    data: { interactionId },
+  } = webhook
+
+  const slate = getAuthRevokeModalSlate(webhook)
+  return {
+    type: WebhookType.Interaction,
+    status: WebhookStatus.Succeeded,
+    data: {
+      interactions: [
+        {
+          id: interactionId,
+          type: InteractionType.OpenModal,
+          props: {
+            title: 'Revoke Authenticaion',
+            size: 'md',
+          },
+          slate: rawSlateToDto(slate),
+        },
+      ],
+    },
+  }
+}
+
 const getAuthRevokeCallbackResponse = async (
   webhook: InteractionWebhook,
 ): Promise<InteractionWebhookResponse> => {
-  logger.debug('getAuthRedirectCallbackResponse called', { webhook })
+  // logger.debug('getAuthRedirectCallbackResponse called', { webhook })
   logger.debug('handleUninstalledWebhook called', { webhook })
   const {
-    networkId,
+    // networkId,
     data: { interactionId },
   } = webhook
+  var revokeInteractions: boolean
+
   try {
-    await NetworkSettingsRepository.delete(networkId)
+    const client = new PrismaClient()
+    await client.connection.deleteMany()
+    await client.networkSettings.deleteMany()
+    revokeInteractions = true
   } catch (error) {
     logger.error(error)
     return getServiceUnavailableError(webhook)
   }
-
-  return getDisconnectedSettingsResponse({ interactionId })
+  return getDisconnectedSettingsResponse({ interactionId, revokeInteractions })
 }
 
 export const getOpenConnectionModalCallbackResponse = async (
@@ -423,6 +455,8 @@ export const getCallbackResponse = async (
       return getAuthRedirectCallbackResponse(webhook)
     case SettingsBlockCallback.AuthRevoke:
       return getAuthRevokeCallbackResponse(webhook)
+    case SettingsBlockCallback.OpenAuthRevokeModal:
+      return getAuthRevokeModalresponse(webhook)
     case SettingsBlockCallback.SearchSlackChannel:
       return getSearchSlackChannelCallbackResponse(webhook)
     // case SettingsBlockCallback.OpenConnectionModal:
