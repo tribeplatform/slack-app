@@ -10,12 +10,16 @@ export const getConnectedSettingsResponse = async (options: {
   interactionId: string
   settings: NetworkSettings
   connections: Connection[]
+  channelNames: string[]
+  spaceNames: string[]
 }): Promise<InteractionWebhookResponse> => {
-  const { interactionId, settings, connections } = options
+  const { interactionId, settings, connections, channelNames, spaceNames } = options
 
   const slate = getConnectedSettingsSlate({
     settings,
     connections,
+    channelNames,
+    spaceNames,
   })
   return {
     type: WebhookType.Interaction,

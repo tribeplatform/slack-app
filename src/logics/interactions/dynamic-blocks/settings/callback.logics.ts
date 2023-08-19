@@ -121,6 +121,8 @@ export const getOpenConnectionModalCallbackResponse = async (
   ])
   // spaces.edges[0].cursor
   // spaces.pageInfo.endCursor
+  // logger.log('spaces', spaces)
+  // const spacesMaped = spaces.nodes.map(space => ({ value: space.id, text: space.name }))
 
   const channelOptions: ChannelFieldOption[] = channels?.channels?.map(channel => ({
     text: `${channel.is_channel ? '#' : '@'}${channel.name}`,
@@ -131,6 +133,13 @@ export const getOpenConnectionModalCallbackResponse = async (
     text: space.name,
     value: space.id,
   }))
+
+  // if (!spacesOptions.some(option => option.text === 'all spaces')) {
+  //   spacesOptions.unshift({
+  //     text: 'all spaces',
+  //     value: 'all-spaces', // You can use any unique value for this case
+  //   })
+  // }
 
   var savedSpaces: string //string[]
   var savedChannels: string //string[]
@@ -344,7 +353,7 @@ export const getRemoveConnectionCallBackResponse = async (
   } = webhook
 
   const prisma = new PrismaClient()
-  const deletedConnection = await prisma.connection.delete({
+  await prisma.connection.delete({
     where: { id: connectionId },
   })
 

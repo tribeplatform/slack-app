@@ -9,8 +9,10 @@ import { getConnectedChannelsSettingsBlocks } from './connected-channels.slate'
 export const getConnectedSettingsSlate = (options: {
   settings: NetworkSettings
   connections: Connection[]
+  channelNames: string[]
+  spaceNames: string[]
 }): RawSlateDto => {
-  const { settings, connections } = options
+  const { settings, connections, channelNames, spaceNames } = options
   return {
     rootBlock: 'root',
     blocks: [
@@ -23,10 +25,12 @@ export const getConnectedSettingsSlate = (options: {
 
       ...getConnectedChannelsSettingsBlocks({
         id: 'channels',
-        action: connections.length < 5 ? 'New Connection' : null,
+        action: connections.length < 3 ? 'New Connection' : null,
         actionCallbackId: SettingsBlockCallback.OpenConnectionModal,
         actionVariant: 'primary',
         connections,
+        channelNames,
+        spaceNames,
       }),
       ...getAuthSettingsBlocks({
         id: 'auth',

@@ -24,6 +24,7 @@ export const connectToSlack = async (options: {
     team,
     is_enterprise_install: isEnterpriseInstall,
   } = authProfile
+  // logger.log('authprofile', authProfile)
   await NetworkSettingsRepository.upsert(networkId, {
     memberId: String(actorId),
     appId,

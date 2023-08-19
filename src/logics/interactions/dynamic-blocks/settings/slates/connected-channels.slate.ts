@@ -9,8 +9,18 @@ export const getConnectedChannelsSettingsBlocks = (options: {
   actionVariant: 'outline' | 'primary' | 'danger'
   actionCallbackId: SettingsBlockCallback
   connections: Connection[]
+  channelNames: string[]
+  spaceNames: string[]
 }): RawBlockDto[] => {
-  const { id, action, actionCallbackId, actionVariant, connections } = options
+  const {
+    id,
+    action,
+    actionCallbackId,
+    actionVariant,
+    connections,
+    channelNames,
+    spaceNames,
+  } = options
   const blocks = [
     {
       id,
@@ -68,16 +78,28 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         size: 'md',
         direction: 'vertical',
+        spacing: 'xs',
       },
-      children: [`${id}.connectionText${index}`],
+      children: [`${id}.channelId${index}`, `${id}.spaceId${index}`],
     })),
     ...connections.map((connection, index) => ({
-      id: `${id}.connectionText${index}`,
+      id: `${id}.channelId${index}`,
       name: 'Text',
       props: {
-        size: 'md',
+        size: 'sm',
         align: 'leading',
-        value: `${connection.channelId}\n${connection.memberId}`,
+        value: `Channel: ${channelNames[index]}`,
+        // format: 'markdown',
+      },
+      children: [],
+    })),
+    ...connections.map((connection, index) => ({
+      id: `${id}.spaceId${index}`,
+      name: 'Text',
+      props: {
+        size: 'sm',
+        align: 'leading',
+        value: `Space: ${spaceNames[index]}`,
       },
       children: [],
     })),
