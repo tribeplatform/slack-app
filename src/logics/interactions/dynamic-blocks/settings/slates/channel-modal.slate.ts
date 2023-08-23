@@ -1,15 +1,10 @@
 import { RawSlateDto } from '@tribeplatform/slate-kit/dtos'
-
-// import { CreateTicketCallback } from '../constants'
 import { ChannelField } from '../constants'
-// import { Chnn } from '../interfaces'
 
 export const getChannelModalSlate = (
   id: string,
-  // actionCallbackId: SettingsBlockCallback,
   fields: ChannelField[],
   options: {
-    // callbackId?: SettingsBlockCallback
     callbackId?: string
     action: {
       enabled?: boolean
@@ -18,30 +13,10 @@ export const getChannelModalSlate = (
       autoDisabled?: boolean
     }
   },
+  events?: string[],
 ): RawSlateDto => {
+  console.log(events)
   const { action, callbackId } = options
-
-  const toggleContainer = {
-    id: 'toggleContainer',
-    name: 'Container',
-    props: {
-      alignment: 'center',
-      direction: 'vertical',
-      spacing: 'lg',
-    },
-    children: ['postPublishedToggle'],
-  }
-  const postPublishedToggle = {
-    id: 'postPublishedToggle',
-    name: 'Toggle',
-    props: {
-      label: 'Post Published',
-      size: 'lg',
-      required: 'false',
-      checked: 'false',
-    },
-    children: [],
-  }
 
   return {
     rootBlock: id,
@@ -51,10 +26,9 @@ export const getChannelModalSlate = (
         name: 'Form',
         props: {
           callbackId: callbackId,
-          defaultValues: fields.reduce(
-            (acc, field) => ({ ...acc, [field.id]: field.defaultValue }),
-            {},
-          ),
+          defaultValues: fields.reduce((acc, field) => {
+            return { ...acc, [field.id]: field.defaultValue }
+          }, {}),
         },
         children: ['fields'],
       },
@@ -62,7 +36,7 @@ export const getChannelModalSlate = (
         id: 'fields',
         name: 'Container',
         props: { spacing: 'sm' },
-        children: [...fields.map(field => field.id), 'submit', 'toggleContainer'],
+        children: [...fields.map(field => field.id), `${id}.toggleContainer`, 'submit'],
       },
       ...fields.map(field => ({
         id: field.id,
@@ -91,8 +65,6 @@ export const getChannelModalSlate = (
           }),
         },
       })),
-      // toggleContainer,
-      // postPublishedToggle,
       ...(action?.enabled
         ? [
             {

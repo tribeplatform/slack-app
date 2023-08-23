@@ -66,20 +66,12 @@ model Connection{
   createdAt  DateTime?   @default(now())
   updatedAt DateTime? @updatedAt
 
+
   networkId String 
   memberId String 
 
   channelId String 
   spaceIds String
 
-  postPublished Boolean @default(false) 
-  memberVerified Boolean @default(false)
-  moderationCreated	Boolean @default(false)
-  moderationRejected Boolean @default(false)
-  moderationAccepted Boolean @default(false)
-  spaceMembershipCreated Boolean @default(false)
-  spaceMembershipDeleted Boolean @default(false)
-  spaceJoinRequestCreated Boolean @default(false)
-  spaceJoinRequestAccepted Boolean @default(false)
-  memberInvitationCreated Boolean @default(false)
+  events String[] 
 }

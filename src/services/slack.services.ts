@@ -3,6 +3,7 @@ import { PostMessageArguments, UpdateMessagePayload } from '@/interfaces/slack.i
 import { ChatPostMessageArguments, WebClient } from '@slack/web-api'
 import { Types } from '@tribeplatform/gql-client'
 import { Logger } from '@tribeplatform/node-logger'
+import * as utils from 'utils/util'
 import * as blockUtils from '../utils/blockParser'
 
 class SlackService {

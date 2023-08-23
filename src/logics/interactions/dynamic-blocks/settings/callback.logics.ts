@@ -173,15 +173,14 @@ export const getOpenConnectionModalCallbackResponse = async (
   //   })
   // }
 
-  var savedSpaces: string //string[]
-  var savedChannels: string //string[]
-
   if (connectionId) {
     const client = new PrismaClient()
-    const connection = client.connection.findUnique({ where: { id: connectionId } })
-    savedSpaces = (await connection).spaceIds
-    savedChannels = (await connection).channelId
+    const connection = await client.connection.findUnique({ where: { id: connectionId } })
+    var savedSpaces: string = connection.spaceIds
+    var savedChannels: string = connection.channelId
+    var events = connection.events
   }
+  logger.log(events)
 
   const slate = getChannelModalSlate(
     randomUUID(),
@@ -209,6 +208,66 @@ export const getOpenConnectionModalCallbackResponse = async (
           typeof savedSpaces != 'undefined' && savedSpaces ? savedSpaces : null,
         appId,
       },
+      {
+        id: `postPublished`,
+        type: ChannelFieldType.Toggle,
+        label: 'New Post',
+        defaultValue: events?.includes('postPublished') ? true : false,
+      },
+      {
+        id: `memberVerified`,
+        type: ChannelFieldType.Toggle,
+        label: 'Create Member',
+        defaultValue: events?.includes('memberVerified') ? true : false,
+      },
+      {
+        id: `moderationCreated`,
+        type: ChannelFieldType.Toggle,
+        label: 'Send To Moderation',
+        defaultValue: events?.includes('moderationCreated') ? true : false,
+      },
+      {
+        id: `moderationAccepted`,
+        type: ChannelFieldType.Toggle,
+        label: 'Accept Moderation Item',
+        defaultValue: events?.includes('moderationAccepted') ? true : false,
+      },
+      {
+        id: `moderationRejected`,
+        type: ChannelFieldType.Toggle,
+        label: 'Reject Moderation Item',
+        defaultValue: events?.includes('moderationRejected') ? true : false,
+      },
+      {
+        id: `spaceMembershipCreated`,
+        type: ChannelFieldType.Toggle,
+        label: 'Add Member To Space',
+        defaultValue: events?.includes('spaceMembershipCreated') ? true : false,
+      },
+      {
+        id: `spaceMembershipDeleted`,
+        type: ChannelFieldType.Toggle,
+        label: 'Remove Member From Space',
+        defaultValue: events?.includes('spaceMembershipDeleted') ? true : false,
+      },
+      {
+        id: `spaceJoinRequestCreated`,
+        type: ChannelFieldType.Toggle,
+        label: 'Request To Join Space',
+        defaultValue: events?.includes('spaceJoinRequestCreated') ? true : false,
+      },
+      {
+        id: `spaceJoinRequestAccepted`,
+        type: ChannelFieldType.Toggle,
+        label: 'Accept Space Join Request',
+        defaultValue: events?.includes('spaceJoinRequestAccepted') ? true : false,
+      },
+      {
+        id: `memberInvitationCreated`,
+        type: ChannelFieldType.Toggle,
+        label: 'Invite Member',
+        defaultValue: events?.includes('memberInvitationCreated') ? true : false,
+      },
     ],
     {
       callbackId:
@@ -222,6 +281,7 @@ export const getOpenConnectionModalCallbackResponse = async (
         enabled: true,
       },
     },
+    events,
   )
   //SettingsBlockCallback.UpsertConnection
   return {
@@ -252,7 +312,20 @@ export const getUpsertConnectionCallbackResponse = async (
     data: {
       actorId,
       interactionId,
-      inputs: { channel, spaces },
+      inputs: {
+        channel,
+        spaces,
+        postPublished,
+        memberVerified,
+        moderationCreated,
+        moderationAccepted,
+        moderationRejected,
+        spaceMembershipCreated,
+        spaceMembershipDeleted,
+        spaceJoinRequestCreated,
+        spaceJoinRequestAccepted,
+        memberInvitationCreated,
+      },
     },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
@@ -273,11 +346,25 @@ export const getUpsertConnectionCallbackResponse = async (
     connectionId = randomId
   }
 
+  const events: string[] = []
+
+  if (postPublished) events.push('postPublished')
+  if (memberVerified) events.push('memberVerified')
+  if (moderationCreated) events.push('moderationCreated')
+  if (moderationAccepted) events.push('moderationAccepted')
+  if (moderationRejected) events.push('moderationRejected')
+  if (spaceMembershipCreated) events.push('spaceMembershipCreated')
+  if (spaceMembershipDeleted) events.push('spaceMembershipDeleted')
+  if (spaceJoinRequestCreated) events.push('spaceJoinRequestCreated')
+  if (spaceJoinRequestAccepted) events.push('spaceJoinRequestAccepted')
+  if (memberInvitationCreated) events.push('memberInvitationCreated')
+
   await ConnectionRepository.upsert(connectionId, {
     memberId: String(actorId),
     networkId: String(networkId),
     channelId: String(channel),
     spaceIds: String(spaces),
+    events,
   })
 
   // bot joins and sends welcome message

@@ -1,18 +1,16 @@
-import { Connection, NetworkSettings } from '@prisma/client'
+import { NetworkSettings } from '@prisma/client'
 import { RawSlateDto } from '@tribeplatform/slate-kit/dtos'
 
-import { SettingsBlockCallback } from '../constants'
+import { SettingsBlockCallback, connectionInfo } from '../constants'
 
 import { getAuthSettingsBlocks } from './auth.slate'
 import { getConnectedChannelsSettingsBlocks } from './connected-channels.slate'
 
 export const getConnectedSettingsSlate = (options: {
   settings: NetworkSettings
-  connections: Connection[]
-  channelNames: string[]
-  spaceNames: string[]
+  connections: connectionInfo[]
 }): RawSlateDto => {
-  const { settings, connections, channelNames, spaceNames } = options
+  const { settings, connections } = options
   return {
     rootBlock: 'root',
     blocks: [
@@ -29,8 +27,6 @@ export const getConnectedSettingsSlate = (options: {
         actionCallbackId: SettingsBlockCallback.OpenConnectionModal,
         actionVariant: 'primary',
         connections,
-        channelNames,
-        spaceNames,
       }),
       ...getAuthSettingsBlocks({
         id: 'auth',

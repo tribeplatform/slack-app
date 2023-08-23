@@ -1,10 +1,7 @@
 import { SubscriptionWebhook } from '@interfaces'
 import { NetworkSettingsRepository } from '@repositories'
-import { EventVerb } from '@tribeplatform/gql-client/global-types'
 import { Member } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
-
-import { handleCreateMemberEvent, handleUpsertContact } from '../helpers.logics'
 
 const logger = globalLogger.setContext(`NetworkSubscription`)
 
@@ -27,23 +24,23 @@ export const handleMemberSubscription = async (
   } = settings
   if (!fieldCategory) return
   switch (verb) {
-    case EventVerb.UPDATED:
-      if (create) {
-        await handleUpsertContact({ settings, memberId: id })
-      }
-      break
-    case EventVerb.VERIFIED:
-      if (create) {
-        await handleUpsertContact({ settings, memberId: id })
-      }
-      if (eventsEnabled) {
-        await handleCreateMemberEvent({
-          settings,
-          webhook,
-          title: 'Joined the community',
-        })
-      }
-      break
+    // case EventVerb.UPDATED:
+    //   if (create) {
+    //     await handleUpsertContact({ settings, memberId: id })
+    //   }
+    //   break
+    // case EventVerb.VERIFIED:
+    //   if (create) {
+    //     await handleUpsertContact({ settings, memberId: id })
+    //   }
+    //   if (eventsEnabled) {
+    //     await handleCreateMemberEvent({
+    //       settings,
+    //       webhook,
+    //       title: 'Joined the community',
+    //     })
+    //   }
+    //   break
     // case EventVerb.DELETED:
     //   if (eventsEnabled) {
     //     await handleCreateMemberEvent({ settings, webhook, title: 'Left the community' })

@@ -1,26 +1,15 @@
 import { RawBlockDto } from '@tribeplatform/slate-kit/dtos'
 
-import { Connection } from '@prisma/client'
-import { SettingsBlockCallback } from '../constants'
+import { SettingsBlockCallback, connectionInfo } from '../constants'
 
 export const getConnectedChannelsSettingsBlocks = (options: {
   id: string
   action: string
   actionVariant: 'outline' | 'primary' | 'danger'
   actionCallbackId: SettingsBlockCallback
-  connections: Connection[]
-  channelNames: string[]
-  spaceNames: string[]
+  connections: connectionInfo[]
 }): RawBlockDto[] => {
-  const {
-    id,
-    action,
-    actionCallbackId,
-    actionVariant,
-    connections,
-    channelNames,
-    spaceNames,
-  } = options
+  const { id, action, actionCallbackId, actionVariant, connections } = options
   const blocks = [
     {
       id,
@@ -64,7 +53,7 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         direction: 'horizontal',
         size: 'md',
-        alignment: { vertical: 'center' },
+        alignment: { horizontal: 'stretch' }, //vertical: 'center', horizntal: 'right'
         shrink: false,
       },
       children: [
@@ -76,30 +65,45 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       id: `${id}.connectionLeftContainer${index}`,
       name: 'Container',
       props: {
-        size: 'md',
+        size: 'lg',
         direction: 'vertical',
         spacing: 'xs',
       },
-      children: [`${id}.channelId${index}`, `${id}.spaceId${index}`],
+      children: [
+        `${id}.memberName${index}`,
+        `${id}.channelName${index}`,
+        `${id}.spaceName${index}`,
+      ],
     })),
     ...connections.map((connection, index) => ({
-      id: `${id}.channelId${index}`,
+      id: `${id}.memberName${index}`,
       name: 'Text',
       props: {
         size: 'sm',
         align: 'leading',
-        value: `Channel: ${channelNames[index]}`,
+        value: `Member: ${connection.memberName}`,
         // format: 'markdown',
       },
       children: [],
     })),
     ...connections.map((connection, index) => ({
-      id: `${id}.spaceId${index}`,
+      id: `${id}.channelName${index}`,
       name: 'Text',
       props: {
         size: 'sm',
         align: 'leading',
-        value: `Space: ${spaceNames[index]}`,
+        value: `Channel: ${connection.channelName}`,
+        // format: 'markdown',
+      },
+      children: [],
+    })),
+    ...connections.map((connection, index) => ({
+      id: `${id}.spaceName${index}`,
+      name: 'Text',
+      props: {
+        size: 'sm',
+        align: 'leading',
+        value: `Space: ${connection.spaceName}`,
       },
       children: [],
     })),
@@ -109,7 +113,7 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       props: {
         size: 'md',
         direction: 'horizontal',
-        alignment: { horizontal: 'center' },
+        alignment: { horizontal: 'end' },
       },
       children: [`${id}.editButton${index}`, `${id}.removeButton${index}`],
     })),
@@ -118,11 +122,9 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       name: 'Button',
       props: {
         size: 'sm',
-        rounded: 'true',
         callbackId: SettingsBlockCallback.OpenConnectionModal + connection.id,
         text: 'edit',
         variant: 'secondary',
-        trailingIcon: 'check-circle',
       },
       children: [],
     })),
@@ -131,13 +133,21 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       name: 'Button',
       props: {
         size: 'sm',
-        rounded: 'true',
         callbackId: SettingsBlockCallback.OpenConnectionRemoveModal + connection.id,
-        text: 'remove',
         variant: 'danger',
       },
-      children: [],
+      children: [`${id}.remove-icon`],
     })),
+    {
+      id: `${id}.remove-icon`,
+      name: 'Icon',
+      props: {
+        name: 'alert-triangle',
+        size: 'md',
+        iconType: 'solid',
+        color: 'attention',
+      },
+    },
     ...(action
       ? [
           {
@@ -179,9 +189,12 @@ export const getConnectedChannelsSettingsBlocks = (options: {
           },
           {
             id: `${id}.action`,
-            name: 'Text',
+            name: 'RichText',
             props: {
-              value: 'youre reached the max number of connections',
+              content: 'You have reached the max number of connections!!!',
+              align: 'trailing',
+              textColor: 'card-with-padding',
+              backgroundcolor: 'dark',
             },
             children: [],
           },

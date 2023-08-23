@@ -6,10 +6,10 @@ export enum SettingsBlockCallback {
   Redirect = 'redirect',
   AuthRedirect = 'auth-redirect',
   AuthRevoke = 'auth-revoke',
-  OpenAuthRevokeModal = 'opem-auth-revoke-modal',
 
+  OpenAuthRevokeModal = 'opem-auth-revoke-modal',
   SearchSlackChannel = 'search-slack-channel',
-  // Slack specific
+
   OpenConnectionModal = 'open-connection-modal',
   OpenConnectionRemoveModal = 'open-connection-remove-modal',
   OpenConnectionEditModal = 'open-connection-edit-modal',
@@ -26,12 +26,13 @@ export enum ChannelFieldType {
   Input = 'Input',
   Textarea = 'Textarea',
   Select = 'Select',
+  Toggle = `Toggle`,
 }
 export interface ChannelField {
   id: string
   type: ChannelFieldType
   label: string
-  defaultValue?: string
+  defaultValue?: string | boolean
   options?: ChannelFieldOption[]
   maxLength?: number
   hidden?: boolean
@@ -41,4 +42,12 @@ export interface ChannelField {
   appId?: string
   disabled?: boolean
   required?: boolean
+}
+
+export interface connectionInfo {
+  memberName: string
+  channelName: string
+  spaceName: string
+  createDate: Date
+  id: string
 }

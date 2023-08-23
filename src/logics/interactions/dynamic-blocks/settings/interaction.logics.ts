@@ -6,11 +6,13 @@ import { globalLogger } from '@utils'
 
 import { getInteractionNotSupportedError } from '../../../error.logics'
 
-import { getNetworkClient, getSlackBotClient } from '@clients'
-import { PrismaClient } from '@prisma/client'
 import { getCallbackResponse } from './callback.logics'
-import { ChannelFieldOption } from './constants'
-import { getConnectedSettingsResponse, getDisconnectedSettingsResponse } from './helpers'
+import { connectionInfo } from './constants'
+import {
+  getConnectedSettingsResponse,
+  getConnectionInfoBundles,
+  getDisconnectedSettingsResponse,
+} from './helpers'
 
 const logger = globalLogger.setContext(`SettingsDynamicBlock`)
 
@@ -44,66 +46,12 @@ const getNetworkSettingsInteractionResponse = async (
     }
   }
 
-  const prisma = new PrismaClient()
-  const connections = await prisma.connection.findMany()
-
-  const [gqlClient, slackClient] = await Promise.all([
-    getNetworkClient(settings.networkId),
-    getSlackBotClient(settings),
-  ])
-  var [spaces, channels] = await Promise.all([
-    gqlClient.query({
-      name: 'spaces',
-      args: {
-        variables: {
-          limit: 20,
-          // after:
-        },
-        fields: {
-          nodes: 'basic',
-          // edges: 'basic',
-          // pageInfo: 'basic',
-        },
-      },
-    }),
-    slackClient.getChannels(),
-  ])
-  // spaces.edges[0].cursor
-  // spaces.pageInfo.endCursor
-  // logger.log('spaces', spaces)
-  // const spacesMaped = spaces.nodes.map(space => ({ value: space.id, text: space.name }))
-
-  const channelOptions: ChannelFieldOption[] = channels?.channels?.map(channel => ({
-    text: `${channel.is_channel ? '#' : '@'}${channel.name}`,
-    value: channel.id,
-  }))
-
-  const spacesOptions: ChannelFieldOption[] = spaces?.nodes?.map(space => ({
-    text: space.name,
-    value: space.id,
-  }))
-
-  const channelNames: string[] = []
-  const spaceNames: string[] = []
-
-  for (const connectionKey in connections) {
-    const connection = connections[connectionKey]
-
-    const channelOption = channelOptions.find(
-      option => option.value === connection.channelId,
-    )
-    if (channelOption) {
-      channelNames.push(channelOption.text)
-    }
-
-    const spaceIds = connection.spaceIds.split(',')
-    for (const spaceId of spaceIds) {
-      const spaceOption = spacesOptions.find(option => option.value === spaceId)
-      if (spaceOption) {
-        spaceNames.push(spaceOption.text)
-      }
-    }
-  }
+  const connections: connectionInfo[] = await getConnectionInfoBundles({ settings })
+  return getConnectedSettingsResponse({
+    interactionId,
+    settings,
+    connections,
+  })
   //if (spaceOption) {
   //   if (spaceOption.value === 'undefined') {
   //     spaceNames.push('All Spaces')
@@ -111,13 +59,6 @@ const getNetworkSettingsInteractionResponse = async (
   //     spaceNames.push(spaceOption.text)
   //   }
   // }
-  return getConnectedSettingsResponse({
-    interactionId,
-    settings,
-    connections,
-    channelNames,
-    spaceNames,
-  })
 }
 
 export const getSettingsInteractionResponse = async (

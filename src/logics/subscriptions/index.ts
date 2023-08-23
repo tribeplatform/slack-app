@@ -1,10 +1,8 @@
 import { ErrorCode, WebhookStatus } from '@enums'
 import { GeneralWebhookResponse, SubscriptionWebhook } from '@interfaces'
 import { EventNoun } from '@tribeplatform/gql-client/global-types'
-import { Member, Network, Post } from '@tribeplatform/gql-client/types'
+import { Network, Post } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
-
-import { handleMemberSubscription } from './member'
 import { handleNetworkSubscription } from './network'
 import { handlePostSubscription } from './post'
 import { handleSpaceMembershipSubscription } from './space-membership'
@@ -25,9 +23,9 @@ export const handleSubscriptionWebhook = async (
       case EventNoun.NETWORK:
         await handleNetworkSubscription(webhook as SubscriptionWebhook<Network>)
         break
-      case EventNoun.MEMBER:
-        await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
-        break
+      // case EventNoun.MEMBER:
+      //   await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
+      //   break
       case EventNoun.POST:
         await handlePostSubscription(webhook as SubscriptionWebhook<Post>)
         break

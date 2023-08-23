@@ -1,0 +1,372 @@
+{
+    "networkId": "LUNjAcpf92",
+    "entityId": "LUNjAcpf92",
+    "type": "SUBSCRIPTION",
+    "data": {
+        "time": "2023-08-23T19:34:29.835Z",
+        "verb": "PUBLISHED",
+        "verbAction": "PUBLISHED",
+        "actor": {
+            "id": "FLq5ZaUUna",
+            "roleId": "sThLxaQZd1",
+            "roleType": "admin",
+            "sessionInfo": {
+                "ip": "24.51.224.210",
+                "country": "CA",
+                "locale": "en-US",
+                "client": 0,
+                "clientVersion": "1.0.0",
+                "os": "Windows",
+                "osVersion": "10",
+                "deviceBrand": "",
+                "trackerGlobalSessionId": null,
+                "trackerSessionId": null
+            }
+        },
+        "object": {
+            "id": "0BFGF78M5DV05Fe",
+            "networkId": "LUNjAcpf92",
+            "templateId": null,
+            "externalId": null,
+            "spaceId": "dWBZxO8g6uJl",
+            "postTypeId": "s4g4OFb1R107XUz",
+            "createdAt": "2023-08-23T19:34:29.679Z",
+            "updatedAt": "2023-08-23T19:34:29.679Z",
+            "publishedAt": "2023-08-23T19:34:29.835Z",
+            "lastActivityAt": null,
+            "lastActivity": null,
+            "status": "PUBLISHED",
+            "createdById": "FLq5ZaUUna",
+            "ownerId": "FLq5ZaUUna",
+            "isAnonymous": false,
+            "locked": false,
+            "mentionedMembers": [],
+            "embedIds": [],
+            "imageIds": [],
+            "pinnedInto": [],
+            "repliedToId": null,
+            "repliedToIds": [],
+            "repliesCount": 0,
+            "totalRepliesCount": 0,
+            "seoDetail": {
+                "title": "something"
+            },
+            "customSeoDetail": {
+                "canonicalUrl": null
+            },
+            "topRepliers": [],
+            "title": "something",
+            "description": "test",
+            "thumbnailId": "",
+            "slug": "something",
+            "key": "0BFGF78M5DV05Fe",
+            "shortContent": "<p>test </p>",
+            "language": "en",
+            "hasMoreContent": false,
+            "isReply": false,
+            "mappingFields": [
+                {
+                    "key": "title",
+                    "value": "\"something\"",
+                    "type": "text"
+                },
+                {
+                    "key": "content",
+                    "value": "\"<p>test </p>\"",
+                    "type": "html"
+                },
+                {
+                    "key": "previewImageId",
+                    "value": "null",
+                    "type": "image"
+                }
+            ],
+            "fields": [
+                {
+                    "key": "title",
+                    "value": "\"something\"",
+                    "schema": {
+                        "key": "title",
+                        "name": "Title",
+                        "type": "text",
+                        "required": true,
+                        "settings": [
+                            {
+                                "key": "subtype",
+                                "value": "\"text\""
+                            },
+                            {
+                                "key": "view",
+                                "value": "\"Title\""
+                            }
+                        ],
+                        "validators": null,
+                        "description": "The title of post",
+                        "readPrivacy": {
+                            "allow": []
+                        },
+                        "typeOptions": {
+                            "textType": "shortText"
+                        },
+                        "writePrivacy": {
+                            "allow": [
+                                "OWN",
+                                "ADMIN"
+                            ]
+                        }
+                    }
+                },
+                {
+                    "key": "content",
+                    "value": "\"<p>test </p>\"",
+                    "schema": {
+                        "key": "content",
+                        "name": "Content",
+                        "type": "richText",
+                        "required": false,
+                        "settings": [
+                            {
+                                "key": "view",
+                                "value": "\"Html\""
+                            }
+                        ],
+                        "validators": null,
+                        "description": "The Body of post",
+                        "readPrivacy": {
+                            "allow": []
+                        },
+                        "typeOptions": {
+                            "richTextType": "html"
+                        },
+                        "writePrivacy": {
+                            "allow": [
+                                "OWN",
+                                "ADMIN"
+                            ]
+                        }
+                    }
+                }
+            ],
+            "primaryReactionType": "EMOJI_BASE",
+            "positiveReactionsCount": 0,
+            "negativeReactionsCount": 0,
+            "reactionsCount": 0,
+            "singleChoiceReactions": [],
+            "isHidden": false,
+            "positiveReactions": null,
+            "negativeReactions": null,
+            "allowedEmojis": null,
+            "forbiddenEmojis": null,
+            "topicIds": [],
+            "tagIds": [],
+            "attachmentIds": [],
+            "searchFields": [
+                "title",
+                "content"
+            ],
+            "relativeUrl": "/discussions-mx01lgs2",
+            "url": "https://internship2023.bettermode.io/discussions-mx01lgs2"
+        },
+        "with": {},
+        "target": {
+            "organizationId": "0uf8ZciORP",
+            "networkId": "LUNjAcpf92",
+            "networkDomain": "internship2023.bettermode.io",
+            "collectionId": "3ND2H23fLSHF",
+            "postTypeId": "s4g4OFb1R107XUz",
+            "spaceId": "dWBZxO8g6uJl",
+            "memberId": "FLq5ZaUUna",
+            "spaceType": "GROUP"
+        },
+        "id": "01435cf2c7bb70b61ef8f9968908d977",
+        "name": "post.published",
+        "noun": "POST",
+        "shortDescription": "Publish Post"
+    },
+    "currentSettings": [],
+    "entities": {
+        "network": {
+            "id": "LUNjAcpf92",
+            "createdAt": "2023-06-05T19:27:04.990Z",
+            "updatedAt": "2023-08-22T18:28:18.964Z",
+            "name": "Internship 2023",
+            "slug": "internship2023-bettermode-io",
+            "domain": "internship2023.bettermode.io",
+            "visibility": "private",
+            "membership": "inviteOnly",
+            "status": "published",
+            "brandColor": null,
+            "locale": "en-US",
+            "tribeBranding": true,
+            "subscriptionPlan": {
+                "id": "rPO73DlsU3dVrW5Jakdqq",
+                "networkId": "LUNjAcpf92",
+                "name": "ENTERPRISE",
+                "memberCapacity": 100000,
+                "seatCapacity": 1,
+                "renewalType": "year",
+                "startDate": "2023-06-20T16:14:49.163Z",
+                "endDate": null,
+                "renewDate": null,
+                "trial": false,
+                "createdAt": "2023-06-20T16:14:49.164Z",
+                "updatedAt": "2023-06-20T16:14:49.164Z",
+                "extendable": false
+            }
+        },
+        "actor": {
+            "id": "FLq5ZaUUna",
+            "externalId": null,
+            "status": "VERIFIED",
+            "username": "ehsan.0zmz952b",
+            "email": "ehsan@bettermode.com",
+            "emailStatus": "verified",
+            "phone": null,
+            "roleId": "sThLxaQZd1",
+            "role": {
+                "id": "sThLxaQZd1",
+                "createdAt": "2023-06-05T19:27:04.990Z",
+                "updatedAt": "2023-06-05T19:27:04.990Z",
+                "networkId": "LUNjAcpf92",
+                "name": "Admin",
+                "description": null,
+                "scopes": [
+                    "*"
+                ],
+                "locked": true,
+                "type": "admin",
+                "visible": true,
+                "network": null
+            },
+            "name": "Ehsan",
+            "profilePictureId": null,
+            "bannerId": "96yyhyeD3wsER4HX3It9d",
+            "tagline": null,
+            "locale": "en-US",
+            "createdAt": "2023-06-05T20:06:33.488Z",
+            "updatedAt": "2023-06-20T16:24:38.756Z",
+            "lastSeenAt": "2023-08-23T19:34:20.531Z",
+            "teammate": true,
+            "fields": [],
+            "settings": {
+                "privateMessaging": {
+                    "privateMessagingEnabled": true
+                }
+            }
+        },
+        "owner": {
+            "id": "FLq5ZaUUna",
+            "externalId": null,
+            "status": "VERIFIED",
+            "username": "ehsan.0zmz952b",
+            "email": "ehsan@bettermode.com",
+            "emailStatus": "verified",
+            "phone": null,
+            "roleId": "sThLxaQZd1",
+            "role": {
+                "id": "sThLxaQZd1",
+                "createdAt": "2023-06-05T19:27:04.990Z",
+                "updatedAt": "2023-06-05T19:27:04.990Z",
+                "networkId": "LUNjAcpf92",
+                "name": "Admin",
+                "description": null,
+                "scopes": [
+                    "*"
+                ],
+                "locked": true,
+                "type": "admin",
+                "visible": true,
+                "network": null
+            },
+            "name": "Ehsan",
+            "profilePictureId": null,
+            "bannerId": "96yyhyeD3wsER4HX3It9d",
+            "tagline": null,
+            "locale": "en-US",
+            "createdAt": "2023-06-05T20:06:33.488Z",
+            "updatedAt": "2023-06-20T16:24:38.756Z",
+            "lastSeenAt": "2023-08-23T19:34:20.531Z",
+            "teammate": true,
+            "fields": [],
+            "settings": {
+                "privateMessaging": {
+                    "privateMessagingEnabled": true
+                }
+            }
+        },
+        "targetMember": {
+            "id": "FLq5ZaUUna",
+            "externalId": null,
+            "status": "VERIFIED",
+            "username": "ehsan.0zmz952b",
+            "email": "ehsan@bettermode.com",
+            "emailStatus": "verified",
+            "phone": null,
+            "roleId": "sThLxaQZd1",
+            "role": {
+                "id": "sThLxaQZd1",
+                "createdAt": "2023-06-05T19:27:04.990Z",
+                "updatedAt": "2023-06-05T19:27:04.990Z",
+                "networkId": "LUNjAcpf92",
+                "name": "Admin",
+                "description": null,
+                "scopes": [
+                    "*"
+                ],
+                "locked": true,
+                "type": "admin",
+                "visible": true,
+                "network": null
+            },
+            "name": "Ehsan",
+            "profilePictureId": null,
+            "bannerId": "96yyhyeD3wsER4HX3It9d",
+            "tagline": null,
+            "locale": "en-US",
+            "createdAt": "2023-06-05T20:06:33.488Z",
+            "updatedAt": "2023-06-20T16:24:38.756Z",
+            "lastSeenAt": "2023-08-23T19:34:20.531Z",
+            "teammate": true,
+            "fields": [],
+            "settings": {
+                "privateMessaging": {
+                    "privateMessagingEnabled": true
+                }
+            }
+        },
+        "space": {
+            "id": "dWBZxO8g6uJl",
+            "createdAt": "2023-06-05T19:29:45.746Z",
+            "updatedAt": "2023-06-06T04:51:02.200Z",
+            "collectionId": "3ND2H23fLSHF",
+            "type": "GROUP",
+            "address": {
+                "path": "discussions-mx01lgs2",
+                "exact": false,
+                "editable": true
+            },
+            "name": "Discussions",
+            "slug": "discussions-mx01lgs2",
+            "status": "created",
+            "imageId": "s1ROwBqpScbuPf39pzA4N",
+            "bannerId": "QUpTj8f4CqMbyN4Z2afTL",
+            "membersCount": 4,
+            "private": true,
+            "hidden": true,
+            "inviteOnly": true,
+            "nonAdminsCanInvite": false,
+            "url": "https://internship2023.bettermode.io/discussions-mx01lgs2",
+            "relativeUrl": "/discussions-mx01lgs2"
+        },
+        "postType": {
+            "id": "s4g4OFb1R107XUz",
+            "templateId": "O2vYu6vA0tI6",
+            "name": "Discussion",
+            "pluralName": "Discussions",
+            "slug": "discussion",
+            "key": "O2vYu6vA0tI6",
+            "context": "post",
+            "iconId": "70CWfDtUJ30O0sQnQQKOP"
+        }
+    }
+}
