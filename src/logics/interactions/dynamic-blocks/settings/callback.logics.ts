@@ -176,11 +176,48 @@ export const getOpenConnectionModalCallbackResponse = async (
   if (connectionId) {
     const client = new PrismaClient()
     const connection = await client.connection.findUnique({ where: { id: connectionId } })
-    var savedSpaces: string = connection.spaceIds
+    var savedSpaces: string[] = connection.spaceIds
     var savedChannels: string = connection.channelId
     var events = connection.events
   }
   logger.log(events)
+
+  const eventTypes = [
+    'postPublished',
+    'memberVerified',
+    'moderationCreated',
+    'moderationAccepted',
+    'moderationRejected',
+    'spaceMembershipCreated',
+    'spaceMembershipDeleted',
+    'spaceJoinRequestCreated',
+    'spaceJoinRequestAccepted',
+    'memberInvitationCreated',
+  ]
+
+  const getLabelFromEventType = (eventType: string): string => {
+    // mapping of event types to their corresponding labels
+    const labelMapping: Record<string, string> = {
+      postPublished: 'New Post',
+      memberVerified: 'Create Member',
+      moderationCreated: 'Send To Moderation',
+      moderationAccepted: 'Accept Moderation Item',
+      moderationRejected: 'Reject Moderation Item',
+      spaceMembershipCreated: 'Add Member To Space',
+      spaceMembershipDeleted: 'Remove Member From Space',
+      spaceJoinRequestCreated: 'Request To Join Space',
+      spaceJoinRequestAccepted: 'Accept Space Join Request',
+      memberInvitationCreated: 'Invite Member',
+    }
+
+    return labelMapping[eventType] || eventType // Default to eventType if no mapping found
+  }
+  const eventFields = eventTypes.map(eventType => ({
+    id: eventType,
+    type: ChannelFieldType.Toggle,
+    label: getLabelFromEventType(eventType),
+    defaultValue: events?.includes(eventType) ?? false,
+  }))
 
   const slate = getChannelModalSlate(
     randomUUID(),
@@ -205,69 +242,10 @@ export const getOpenConnectionModalCallbackResponse = async (
         dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
         // defaultValue: spacesOptions[0].value,
         defaultValue:
-          typeof savedSpaces != 'undefined' && savedSpaces ? savedSpaces : null,
+          typeof savedSpaces != 'undefined' && savedSpaces ? savedSpaces : 'Community',
         appId,
       },
-      {
-        id: `postPublished`,
-        type: ChannelFieldType.Toggle,
-        label: 'New Post',
-        defaultValue: events?.includes('postPublished') ? true : false,
-      },
-      {
-        id: `memberVerified`,
-        type: ChannelFieldType.Toggle,
-        label: 'Create Member',
-        defaultValue: events?.includes('memberVerified') ? true : false,
-      },
-      {
-        id: `moderationCreated`,
-        type: ChannelFieldType.Toggle,
-        label: 'Send To Moderation',
-        defaultValue: events?.includes('moderationCreated') ? true : false,
-      },
-      {
-        id: `moderationAccepted`,
-        type: ChannelFieldType.Toggle,
-        label: 'Accept Moderation Item',
-        defaultValue: events?.includes('moderationAccepted') ? true : false,
-      },
-      {
-        id: `moderationRejected`,
-        type: ChannelFieldType.Toggle,
-        label: 'Reject Moderation Item',
-        defaultValue: events?.includes('moderationRejected') ? true : false,
-      },
-      {
-        id: `spaceMembershipCreated`,
-        type: ChannelFieldType.Toggle,
-        label: 'Add Member To Space',
-        defaultValue: events?.includes('spaceMembershipCreated') ? true : false,
-      },
-      {
-        id: `spaceMembershipDeleted`,
-        type: ChannelFieldType.Toggle,
-        label: 'Remove Member From Space',
-        defaultValue: events?.includes('spaceMembershipDeleted') ? true : false,
-      },
-      {
-        id: `spaceJoinRequestCreated`,
-        type: ChannelFieldType.Toggle,
-        label: 'Request To Join Space',
-        defaultValue: events?.includes('spaceJoinRequestCreated') ? true : false,
-      },
-      {
-        id: `spaceJoinRequestAccepted`,
-        type: ChannelFieldType.Toggle,
-        label: 'Accept Space Join Request',
-        defaultValue: events?.includes('spaceJoinRequestAccepted') ? true : false,
-      },
-      {
-        id: `memberInvitationCreated`,
-        type: ChannelFieldType.Toggle,
-        label: 'Invite Member',
-        defaultValue: events?.includes('memberInvitationCreated') ? true : false,
-      },
+      ...eventFields,
     ],
     {
       callbackId:

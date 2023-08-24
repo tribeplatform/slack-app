@@ -1,8 +1,4 @@
-import { getNetworkClient, getSlackBotClient } from '@clients'
-import { SubscriptionWebhook } from '@interfaces'
-import { NetworkSettings, PrismaClient } from '@prisma/client'
 import { TribeClient } from '@tribeplatform/gql-client'
-import { Post } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
 
 const logger = globalLogger.setContext('MemberSubscriptionHelpers')
@@ -28,66 +24,6 @@ const getAllMemberSpaces = async (gqlClient: TribeClient, id: string) => {
     hasNextPage = currentBatch.pageInfo.hasNextPage
   }
   return spaces
-}
-
-export const handleCreatePostEvent = async (options: {
-  settings: NetworkSettings
-  webhook: SubscriptionWebhook<Post>
-}) => {
-  const { settings, webhook } = options
-  const { networkId, memberId } = settings
-  const {
-    data: { object },
-  } = webhook
-  const { spaceId, status, title, fields } = object
-  const content = object.fields.find(field => field.key === 'content')
-  // console.log(data)
-  console.log(content)
-  const slackClient = await getSlackBotClient(settings)
-  const gqlClient = await getNetworkClient(networkId)
-  const prisma = new PrismaClient()
-  const connections = await prisma.connection.findMany()
-
-  const connectionIdsWithMatchingSpace = connections
-    .filter(connection => connection.spaceIds === spaceId)
-    .map(connection => {
-      connection.id, connection.channelId
-    })
-  console.log(connections)
-
-  // const extraData = {
-  //         ID: ,
-  //         Slug: object?.slug,
-  //         Name: object?.name,
-  //         Title: object?.title,
-  //         Status: object?.status,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Created At': object?.createdAt,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Updated At': object?.updatedAt,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Created By ID': object?.createdById,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Owner ID': object?.ownerId,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Is Reply': object?.isReply,
-  //         Count: object?.count,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Post ID': object?.postId,
-  //         Reaction: object?.reaction?.reaction,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Space ID': object?.spaceId,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Member ID': object?.memberId,
-  //         // eslint-disable-next-line @typescript-eslint/naming-convention
-  //         'Inviter ID': object?.inviterId,
-  //         Private: object?.private,
-  //         Hidden: object?.hidden,
-  //       }
-  // console.log(webhook)
-  console.log(settings)
-
-  return null
 }
 
 // export const handleUpsertContact = async (options: {

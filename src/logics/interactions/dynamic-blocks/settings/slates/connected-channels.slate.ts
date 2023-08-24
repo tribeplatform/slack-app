@@ -65,7 +65,7 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       id: `${id}.connectionLeftContainer${index}`,
       name: 'Container',
       props: {
-        size: 'lg',
+        size: 'xl',
         direction: 'vertical',
         spacing: 'xs',
       },
@@ -111,9 +111,9 @@ export const getConnectedChannelsSettingsBlocks = (options: {
       id: `${id}.connectionRightContainer${index}`,
       name: 'Container',
       props: {
-        size: 'md',
+        size: 'xl',
         direction: 'horizontal',
-        alignment: { horizontal: 'end' },
+        alignment: { horizontal: 'center' },
       },
       children: [`${id}.editButton${index}`, `${id}.removeButton${index}`],
     })),

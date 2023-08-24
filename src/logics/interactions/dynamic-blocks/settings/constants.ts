@@ -32,7 +32,7 @@ export interface ChannelField {
   id: string
   type: ChannelFieldType
   label: string
-  defaultValue?: string | boolean
+  defaultValue?: string | boolean | string[]
   options?: ChannelFieldOption[]
   maxLength?: number
   hidden?: boolean

@@ -1,5 +1,5 @@
 import { SubscriptionWebhook } from '@interfaces'
-import { NetworkRepository } from '@repositories'
+import { NetworkSettingsRepository } from '@repositories'
 import { Network } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
 
@@ -16,5 +16,5 @@ export const handleNetworkUpdatedSubscription = async (
     },
   } = webhook
 
-  await NetworkRepository.update(id, { name, domain })
+  await NetworkSettingsRepository.update(id, {})
 }

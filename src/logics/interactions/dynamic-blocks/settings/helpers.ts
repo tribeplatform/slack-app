@@ -85,13 +85,13 @@ export const getConnectionInfoBundles = async (options: {
   settings: NetworkSettings
 }): Promise<connectionInfo[]> => {
   const { settings } = options
-
+  const { networkId } = settings
   const [gqlClient, slackClient, prisma] = await Promise.all([
     getNetworkClient(settings.networkId),
     getSlackBotClient(settings),
     new PrismaClient(),
   ])
-  const connections = await prisma.connection.findMany()
+  const connections = await prisma.connection.findMany({ where: { networkId } })
 
   //query to get spaces, channels, and member info
   var [spaces, channels] = await Promise.all([
@@ -141,7 +141,7 @@ export const getConnectionInfoBundles = async (options: {
       connectionInfoBundle.channelName = channelOption.text
     }
 
-    const spaceIds = connection.spaceIds.split(',')
+    const spaceIds = connection.spaceIds
     for (const spaceId of spaceIds) {
       const spaceOption = spacesOptions.find(option => option.value === spaceId)
       if (spaceOption) {

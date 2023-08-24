@@ -71,7 +71,7 @@ model Connection{
   memberId String 
 
   channelId String 
-  spaceIds String
+  spaceIds String[]
 
   events String[] 
 }

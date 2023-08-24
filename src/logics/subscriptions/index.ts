@@ -23,12 +23,13 @@ export const handleSubscriptionWebhook = async (
       case EventNoun.NETWORK:
         await handleNetworkSubscription(webhook as SubscriptionWebhook<Network>)
         break
-      // case EventNoun.MEMBER:
-      //   await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
-      //   break
       case EventNoun.POST:
         await handlePostSubscription(webhook as SubscriptionWebhook<Post>)
         break
+      // case EventNoun.MEMBER:
+      //   await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
+      //   break
+
       case EventNoun.SPACE_MEMBERSHIP:
         await handleSpaceMembershipSubscription(webhook as SubscriptionWebhook<any>)
         break
