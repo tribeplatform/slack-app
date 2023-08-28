@@ -3,12 +3,10 @@ import { NetworkSettingsRepository } from '@repositories'
 import { EventVerb } from '@tribeplatform/gql-client/global-types'
 import { Member } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
-import { handleCreateMemberInvitation } from './created.logics'
-import { handleVerifyMember } from './verified.logics'
 
 const logger = globalLogger.setContext(`NetworkSubscription`)
 
-export const handleMemberSubscription = async (
+export const handleModerationSubscription = async (
   webhook: SubscriptionWebhook<Member>,
 ): Promise<void> => {
   logger.debug('handleMemberSubscription called', { webhook })
@@ -23,10 +21,13 @@ export const handleMemberSubscription = async (
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
   switch (verb) {
     case EventVerb.CREATED:
-      await handleCreateMemberInvitation({ settings, webhook })
+      //   await handleCreateMemberInvitation({ settings, webhook })
       break
-    case EventVerb.VERIFIED:
-      await handleVerifyMember({ settings, webhook })
+    case EventVerb.ACCEPTED:
+      //   await handleVerifyMember({ settings, webhook })
+      break
+    case EventVerb.REJECTED:
+      //   await handleVerifyMember({ settings, webhook })
       break
     default:
       break

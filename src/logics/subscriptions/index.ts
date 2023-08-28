@@ -1,11 +1,13 @@
 import { ErrorCode, WebhookStatus } from '@enums'
 import { GeneralWebhookResponse, SubscriptionWebhook } from '@interfaces'
 import { EventNoun } from '@tribeplatform/gql-client/global-types'
-import { Network, Post } from '@tribeplatform/gql-client/types'
+import { Member, Post, Space } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
-import { handleNetworkSubscription } from './network'
+import { handleMemberSubscription } from './member'
+import { handleModerationSubscription } from './moderation'
 import { handlePostSubscription } from './post'
 import { handleSpaceMembershipSubscription } from './space-membership'
+import { handleSpaceJoinRequestSubscription } from './space_join_request'
 
 const logger = globalLogger.setContext(`Subscription`)
 
@@ -20,19 +22,22 @@ export const handleSubscriptionWebhook = async (
 
   try {
     switch (noun) {
-      case EventNoun.NETWORK:
-        await handleNetworkSubscription(webhook as SubscriptionWebhook<Network>)
-        break
       case EventNoun.POST:
         await handlePostSubscription(webhook as SubscriptionWebhook<Post>)
         break
-      // case EventNoun.MEMBER:
-      //   await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
-      //   break
-
-      case EventNoun.SPACE_MEMBERSHIP:
-        await handleSpaceMembershipSubscription(webhook as SubscriptionWebhook<any>)
+      case EventNoun.MEMBER:
+        await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
         break
+      case EventNoun.MODERATION:
+        await handleModerationSubscription(webhook as SubscriptionWebhook<any>)
+        break
+      case EventNoun.SPACE_MEMBERSHIP:
+        await handleSpaceMembershipSubscription(webhook as SubscriptionWebhook<Space>)
+        break
+      case EventNoun.SPACE_MEMBERSHIP:
+        await handleSpaceJoinRequestSubscription(webhook as SubscriptionWebhook<any>)
+        break
+
       default:
         break
     }

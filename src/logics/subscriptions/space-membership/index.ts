@@ -1,11 +1,10 @@
-import { getNetworkClient } from '@clients'
 import { SubscriptionWebhook } from '@interfaces'
+import { NetworkSettings } from '@prisma/client'
 import { NetworkSettingsRepository } from '@repositories'
 import { EventVerb } from '@tribeplatform/gql-client/global-types'
-import { createHyperlink, globalLogger } from '@utils'
-
-import { handleCreateSpaceMembershipEvent } from '../helpers.logics'
-
+import { Post } from '@tribeplatform/gql-client/types'
+import { globalLogger } from '@utils'
+import { handleCreateEvent } from '../helpers.logics'
 const logger = globalLogger.setContext(`NetworkSubscription`)
 
 export const handleSpaceMembershipSubscription = async (
@@ -16,41 +15,58 @@ export const handleSpaceMembershipSubscription = async (
   const {
     networkId,
     data: {
+      time,
       verb,
       actor: { id: actorId },
       object: { spaceId, memberId },
     },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
-  const {
-    eventsSettings: { enabled: eventsEnabled },
-  } = settings
-  if (!eventsEnabled) return
-  const gqlClient = await getNetworkClient(networkId)
-  const space = await gqlClient.query({
-    name: 'space',
-    args: { variables: { id: spaceId }, fields: 'basic' },
-  })
+
+  var sentence: string
   switch (verb) {
     case EventVerb.CREATED:
-      if (eventsEnabled && actorId === memberId) {
-        await handleCreateSpaceMembershipEvent({
-          settings,
-          title: `Joined ${createHyperlink(space.name, space.url)}`,
-          webhook,
-        })
+      if (actorId === memberId) {
+      } else {
+        // await handleCreateSpaceMembershipEvent({
+        //   payload,
+        //   webhook,
+        // })
       }
       break
     case EventVerb.DELETED:
-      if (eventsEnabled && actorId === memberId) {
-        await handleCreateSpaceMembershipEvent({
-          settings,
-          title: `Left ${createHyperlink(space.name, space.url)}`,
-          webhook,
-        })
+      if (actorId === memberId) {
+        // await handleCreateSpaceMembershipEvent({
+        //   settings,
+        //   title: `Left ${createHyperlink(space.name, space.url)}`,
+        //   webhook,
+        // })
+      } else {
+        // await handleCreateSpaceMembershipEvent({      })
       }
       break
     default:
       break
   }
+}
+
+export const handleCreateSpaceMembershipEvent = async (options: {
+  settings: NetworkSettings
+  webhook: SubscriptionWebhook<Post>
+}): Promise<void> => {
+  const { settings, webhook } = options
+  const { networkId, memberId } = settings
+  const {
+    data: { object, verb, actor },
+  } = webhook
+  const { id: actorId } = actor
+  const { id: postId, spaceId } = object
+
+  await handleCreateEvent({
+    settings,
+    verb,
+    postId,
+    spaceId,
+    actorId,
+  })
 }

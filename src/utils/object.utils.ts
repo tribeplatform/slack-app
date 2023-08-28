@@ -1,3 +1,5 @@
+import { Member } from '@tribeplatform/gql-client/types'
+
 const TurndownService = require('turndown')
 /**
  * @method isEmpty
@@ -17,6 +19,14 @@ export const isEmpty = (value: string | number | object): boolean => {
   } else {
     return false
   }
+}
+
+export const isDeleted = (member: Member): boolean => {
+  return member.name === 'Deleted Member'
+}
+
+export const isRecentlyJoined = (member: Member): boolean => {
+  return Math.abs(new Date().getTime() - new Date(member.createdAt).getTime()) < 50 * 1000
 }
 
 export const slugify = (text: string, filler = '_'): string =>

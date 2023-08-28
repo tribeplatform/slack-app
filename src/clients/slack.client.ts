@@ -1,5 +1,6 @@
+import { PostMessageArguments } from '@interfaces'
 import { NetworkSettings } from '@prisma/client'
-import { WebClient } from '@slack/web-api'
+import { ChatPostMessageArguments, WebClient } from '@slack/web-api'
 import { globalLogger } from '@utils'
 
 const logger = globalLogger.setContext('HubspotClient')
@@ -37,6 +38,24 @@ export class SlackClient {
 
   public async join(options: { channel: string }) {
     return this.client?.conversations.join(options)
+  }
+
+  public async postMessageII({
+    text,
+    blocks,
+    channel,
+    username,
+    image,
+  }: PostMessageArguments) {
+    if (!Array.isArray(blocks)) blocks = [blocks]
+    const payload: ChatPostMessageArguments = {
+      channel,
+      blocks,
+      text,
+    }
+    if (username) payload.username = username
+    if (image) payload.icon_url = image
+    return this.client?.chat.postMessage(payload)
   }
 }
 

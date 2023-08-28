@@ -166,13 +166,6 @@ export const getOpenConnectionModalCallbackResponse = async (
     value: space.id,
   }))
 
-  // if (!spacesOptions.some(option => option.text === 'all spaces')) {
-  //   spacesOptions.unshift({
-  //     text: 'all spaces',
-  //     value: 'all-spaces', // You can use any unique value for this case
-  //   })
-  // }
-
   if (connectionId) {
     const client = new PrismaClient()
     const connection = await client.connection.findUnique({ where: { id: connectionId } })
@@ -261,7 +254,6 @@ export const getOpenConnectionModalCallbackResponse = async (
     },
     events,
   )
-  //SettingsBlockCallback.UpsertConnection
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -354,12 +346,6 @@ export const getUpsertConnectionCallbackResponse = async (
     channel: channel as string,
     text: 'Hello world from slack bot',
   })
-
-  //print all connections ////////(remove this  for production )
-  const prisma = new PrismaClient()
-  const connections = await prisma.connection.findMany()
-  logger.log('all connections', connections)
-  // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -524,10 +510,6 @@ export const getCallbackResponse = async (
       return getAuthRevokeModalresponse(webhook)
     case SettingsBlockCallback.SearchSlackChannel:
       return getSearchSlackChannelCallbackResponse(webhook)
-    // case SettingsBlockCallback.OpenConnectionModal:
-    //   return getOpenConnectionModalCallbackResponse(webhook)
-    // case SettingsBlockCallback.UpsertConnection:
-    //   return getUpsertConnectionCallbackResponse(webhook)
 
     default:
       return getInteractionNotSupportedError('callbackId', callbackId)
