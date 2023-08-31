@@ -1,7 +1,13 @@
 import { ErrorCode, WebhookStatus } from '@enums'
 import { GeneralWebhookResponse, SubscriptionWebhook } from '@interfaces'
 import { EventNoun } from '@tribeplatform/gql-client/global-types'
-import { Member, Post, Space } from '@tribeplatform/gql-client/types'
+import {
+  Member,
+  ModerationItem,
+  Post,
+  Space,
+  SpaceJoinRequest,
+} from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
 import { handleMemberSubscription } from './member'
 import { handleModerationSubscription } from './moderation'
@@ -28,14 +34,16 @@ export const handleSubscriptionWebhook = async (
       case EventNoun.MEMBER:
         await handleMemberSubscription(webhook as SubscriptionWebhook<Member>)
         break
-      case EventNoun.MODERATION:
-        await handleModerationSubscription(webhook as SubscriptionWebhook<any>)
-        break
       case EventNoun.SPACE_MEMBERSHIP:
         await handleSpaceMembershipSubscription(webhook as SubscriptionWebhook<Space>)
         break
-      case EventNoun.SPACE_MEMBERSHIP:
-        await handleSpaceJoinRequestSubscription(webhook as SubscriptionWebhook<any>)
+      case EventNoun.MODERATION:
+        await handleModerationSubscription(webhook as SubscriptionWebhook<ModerationItem>)
+        break
+      case EventNoun.SPACE_JOIN_REQUEST:
+        await handleSpaceJoinRequestSubscription(
+          webhook as SubscriptionWebhook<SpaceJoinRequest>,
+        )
         break
 
       default:

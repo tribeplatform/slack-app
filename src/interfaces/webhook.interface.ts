@@ -1,5 +1,12 @@
 import { WebhookType } from '@enums'
-import { Member, Network, PermissionContext } from '@tribeplatform/gql-client/types'
+import {
+  Member,
+  Network,
+  PermissionContext,
+  Post,
+  PostType,
+  Space,
+} from '@tribeplatform/gql-client/types'
 
 import { AppInstallation, AppSettings } from './app.interface'
 import { BaseEventObject, Event } from './event.interface'
@@ -17,6 +24,9 @@ export interface WebhookEntities {
   actor?: Member
   owner?: Member
   targetMember?: Member
+  space?: Space
+  post?: Post
+  postType?: PostType
 }
 
 export interface BaseWebhook {

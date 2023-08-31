@@ -1,30 +1,33 @@
 // import { createLogger } from '@/utils/logger';
-import { UpdateMessagePayload } from '@/interfaces/slack.interface'
 import { getSlackBotClient } from '@clients'
-import { NetworkSettings } from '@prisma/client'
 import { Types } from '@tribeplatform/gql-client'
 import { globalLogger } from '@utils'
 import * as utils from 'utils/util'
 import * as blockUtils from '../utils/blockParser'
 
-const logger = globalLogger.setContext('SendSlackMesseges was Called! ')
+const logger = globalLogger.setContext('SendSlackMesseges was Called!')
 
 export const sendSlackMessage = async (
+ // channel: string,
+  //message: string,
+  //payload: UpdateMessagePayload,
+  // settings: NetworkSettings,
+  sentences: [],
   channel: string,
-  payload: UpdateMessagePayload,
-  settings: NetworkSettings,
+  context: [],
+  action: {
+    text: string,
+    type: string,
+    emoji: boolean,
+    url: string,
+  }
 ) => {
   try {
+
     const blocks = []
     const sentences = []
+    sentences.push(message)
     switch (payload.event) {
-      case 'post.published':
-        sentences.push(
-          `${blockUtils.createEntityHyperLink(payload.member)} added a ${
-            payload.post.repliedToId ? 'reply' : 'post'
-          }`,
-        )
-        break
       case 'member.verified':
         sentences.push(
           `${blockUtils.createEntityHyperLink(payload.member)} joined the community`,
@@ -167,10 +170,10 @@ export const sendSlackMessage = async (
       }
       blocks.push({
         type: 'context',
-        elements,
+        elements: context,
       })
     }
-    if (payload.event === 'moderation.created') {
+    if (action === 'moderation.created') {
       blocks.push({
         type: 'actions',
         elements: [
@@ -178,7 +181,7 @@ export const sendSlackMessage = async (
             type: 'button',
             text: {
               type: 'plain_text',
-              text: 'Go to moderation',
+              text: action.text',
               emoji: true,
             },
             url: `https://${payload.network.domain}/settings/moderation`,
@@ -187,7 +190,7 @@ export const sendSlackMessage = async (
       })
     }
 
-    const image = (payload.network?.favicon as Types.Image)?.urls?.small
+    const image = (networkImage as Types.Image)?.urls?.small
 
     const [slackClient] = await Promise.all([getSlackBotClient(settings)])
     await slackClient.postMessageII({

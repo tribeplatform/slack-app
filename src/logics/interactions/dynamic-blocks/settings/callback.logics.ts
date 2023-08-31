@@ -173,7 +173,7 @@ export const getOpenConnectionModalCallbackResponse = async (
     var savedChannels: string = connection.channelId
     var events = connection.events
   }
-  logger.log(events)
+  // logger.log(events)
 
   const eventTypes = [
     'postPublished',
@@ -342,19 +342,15 @@ export const getUpsertConnectionCallbackResponse = async (
   await slackClient.join({
     channel: channel as string,
   })
-  await slackClient.postMessage({
-    channel: channel as string,
-    text: 'Hello world from slack bot',
-  })
+  // await slackClient.postMessage({
+  //   channel: channel as string,
+  //   text: 'Hello world from slack bot',
+  // })
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
     data: {
       interactions: [
-        {
-          id: interactionId,
-          type: InteractionType.Close,
-        },
         {
           id: interactionId + randomUUID(),
           type: InteractionType.Reload,
@@ -362,6 +358,10 @@ export const getUpsertConnectionCallbackResponse = async (
           props: {
             dynamicBlockKeys: ['settings'],
           },
+        },
+        {
+          id: interactionId,
+          type: InteractionType.Close,
         },
       ],
     },
@@ -380,7 +380,7 @@ export const getSearchSlackChannelCallbackResponse = async (
     },
   } = webhook
 
-  logger.log(webhook)
+  // logger.log(webhook)
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -430,7 +430,7 @@ export const getRemoveConnectionCallBackResponse = async (
   webhook: InteractionWebhook,
   connectionId: string,
 ): Promise<InteractionWebhookResponse> => {
-  logger.log(webhook)
+  // logger.log(webhook)
   const {
     data: { interactionId },
   } = webhook

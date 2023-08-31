@@ -1,12 +1,9 @@
 import { Member } from '@tribeplatform/gql-client/types'
+import { globalLogger } from './logger.utils'
+const logger = globalLogger.setContext('SendSlackMesseges was Called!')
 
 const TurndownService = require('turndown')
-/**
- * @method isEmpty
- * @param {String | Number | Object} value
- * @returns {Boolean} true & false
- * @description this value is Empty Check
- */
+
 export const isEmpty = (value: string | number | object): boolean => {
   if (value === null) {
     return true
@@ -22,7 +19,7 @@ export const isEmpty = (value: string | number | object): boolean => {
 }
 
 export const isDeleted = (member: Member): boolean => {
-  return member.name === 'Deleted Member'
+  return member.name == 'Deleted Member'
 }
 
 export const isRecentlyJoined = (member: Member): boolean => {

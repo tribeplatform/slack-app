@@ -3,7 +3,8 @@ import slackify from 'slackify-html'
 
 const POST_TITLE_LIMIT = 100
 export const createHyperlink = ({ text, url }: { text: string; url: string }) =>
-  `[${text}](${url})`
+  `*<${url}|${escapeText(text)}>*`
+// `[${text}](${url})`
 
 export const createEntityHyperLink = (entity: Types.Member | Types.Space) =>
   createHyperlink({ text: entity.name, url: entity.url })

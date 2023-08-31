@@ -1,8 +1,11 @@
 import { getNetworkClient } from '@clients'
 import { SubscriptionWebhook } from '@interfaces'
+import { NetworkSettings } from '@prisma/client'
 import { NetworkSettingsRepository } from '@repositories'
 import { EventVerb } from '@tribeplatform/gql-client/global-types'
-import { createHyperlink, globalLogger } from '@utils'
+import { SpaceJoinRequest } from '@tribeplatform/gql-client/types'
+import { globalLogger } from '@utils'
+import { handleCreateEvent } from '../helpers.logics'
 
 const logger = globalLogger.setContext(`NetworkSubscription`)
 
@@ -28,24 +31,33 @@ export const handleSpaceJoinRequestSubscription = async (
   })
   switch (verb) {
     case EventVerb.CREATED:
-      if (eventsEnabled && actorId === memberId) {
-        await handleCreateSpaceJoinRequestEvent({
-          settings,
-          title: `Joined ${createHyperlink(space.name, space.url)}`,
-          webhook,
-        })
-      }
+      await handleCreateSpaceJoinRequest({ settings, webhook })
+
       break
-    case EventVerb.ACCE:
-      if (eventsEnabled && actorId === memberId) {
-        await handleDeleteSpaceJoinRequestEvent({
-          settings,
-          title: `Left ${createHyperlink(space.name, space.url)}`,
-          webhook,
-        })
-      }
+    case EventVerb.ACCEPTED:
+      await handleCreateSpaceJoinRequest({ settings, webhook })
       break
     default:
       break
   }
+}
+
+export const handleCreateSpaceJoinRequest = async (options: {
+  settings: NetworkSettings
+  webhook: SubscriptionWebhook<SpaceJoinRequest>
+}): Promise<void> => {
+  const { settings, webhook } = options
+  const {
+    data: { object, verb, actor },
+  } = webhook
+  const { id: actorId } = actor
+  const { id: postId, spaceId } = object
+
+  await handleCreateEvent({
+    settings,
+    verb,
+    postId,
+    spaceId,
+    actorId,
+  })
 }

@@ -1,6 +1,5 @@
 import { sendSlackMessage } from '@/services'
-import { getNetworkClient } from '@clients'
-import { UpdateMessagePayload } from '@interfaces'
+import { UpdateMessagePayload, WebhookEntities } from '@interfaces'
 import { NetworkSettings, PrismaClient } from '@prisma/client'
 import { globalLogger, isDeleted } from '@utils'
 
@@ -8,32 +7,26 @@ const logger = globalLogger.setContext('MemberSubscriptionHelpers')
 
 export const handleCreateEvent = async (options: {
   settings: NetworkSettings
+  entities: WebhookEntities
   verb: string
-  object?: object
-  postId?: string
-  spaceId?: string
-  actorId?: string
+  message: string
+  postId: string
 }): Promise<void> => {
-  const { settings, verb, object, postId, spaceId, actorId } = options
-  const { networkId, memberId } = settings
-  var skip: boolean = false //to check for deleted members
+  const { settings, verb, entities, message, postId } = options
+  const { networkId } = settings
+  // const { post, space, actor, owner } = entities
 
   //init clients
   const prisma = new PrismaClient()
-  const connections = await prisma.connection.findMany({ where: { networkId } })
-  const gqlClient = await getNetworkClient(networkId)
-
-  //query thee 'network'
-  const network = await gqlClient.query({
-    name: 'network',
-    args: 'basic',
+  var connections = await prisma.connection.findMany({
+    where: { networkId },
   })
-  //define payload
-  const payload: UpdateMessagePayload = {
-    event: verb,
-    context: true,
-    network,
-  }
+  //connections with matching space or the ones that have no spaceids==> whole community
+  connections = connections.filter(
+    connection =>
+      connection.spaceIds.includes(entities?.space ? entities?.space.id : null) ||
+      connection.spaceIds.length == 0,
+  )
 
   const arr: string[] = [
     'space_membership.created',
@@ -43,53 +36,25 @@ export const handleCreateEvent = async (options: {
     'member_invitation.created',
     'member.verified',
   ]
-  if (arr.includes(verb)) {
-    payload.context = false
+
+  //define payload
+  const payload: UpdateMessagePayload = {
+    event: verb,
+    network: entities?.network ? entities?.network : null,
+    post: entities?.post ? entities?.post : null,
+    space: entities?.space ? entities?.space : null,
+    actor: entities?.actor ? entities?.actor : null,
+    member: verb != 'member_invitation.created' ? entities?.owner : null,
+    context: arr.includes(verb) ? false : true,
   }
 
-  //fill up payload attr
-  if (spaceId) {
-    const space = await gqlClient.query({
-      //query the space
-      name: 'space',
-      args: { variables: { id: spaceId }, fields: 'basic' },
-    })
-    payload.space = space
-  }
-  if (actorId) {
-    const actor = await await gqlClient.query({
-      //query the member
-      name: 'member',
-      args: { variables: { id: actorId }, fields: 'basic' },
-    })
-    payload.actor = actor
-  }
-  if (postId) {
-    const post = await gqlClient.query({
-      //query the post
-      name: 'post',
-      args: { variables: { id: postId }, fields: 'basic' },
-    })
-    payload.post = post
-  }
+  // logger.log('payload', payload)
 
-  if (verb != 'member_invitation.created') {
-    if (memberId) {
-      const member = await gqlClient.query({
-        name: 'member',
-        args: { variables: { id: memberId }, fields: 'basic' },
-      })
-      payload.member = member
-      if (isDeleted(member)) skip = true
-    }
-    // }else{
-    //   payload.member{
-    //     id: object.id
-    //     email: object.invitee
-    //   }
-    // }
+  const skip: boolean = isDeleted(payload.member) ? true : false
+
+  if (!skip) {
     for (const connection of connections) {
-      await sendSlackMessage(connection.channelId, payload, settings)
+      await sendSlackMessage(connection.channelId, message, payload, settings)
     }
   }
 }

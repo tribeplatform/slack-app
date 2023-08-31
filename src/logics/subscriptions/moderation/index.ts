@@ -1,13 +1,13 @@
 import { SubscriptionWebhook } from '@interfaces'
 import { NetworkSettingsRepository } from '@repositories'
 import { EventVerb } from '@tribeplatform/gql-client/global-types'
-import { Member } from '@tribeplatform/gql-client/types'
+import { ModerationItem } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
 
 const logger = globalLogger.setContext(`NetworkSubscription`)
 
 export const handleModerationSubscription = async (
-  webhook: SubscriptionWebhook<Member>,
+  webhook: SubscriptionWebhook<ModerationItem>,
 ): Promise<void> => {
   logger.debug('handleMemberSubscription called', { webhook })
 
