@@ -2,8 +2,9 @@ import { SubscriptionWebhook } from '@interfaces'
 import { NetworkSettings } from '@prisma/client'
 import { NetworkSettingsRepository } from '@repositories'
 import { EventVerb } from '@tribeplatform/gql-client/global-types'
-import { Member } from '@tribeplatform/gql-client/types'
-import { globalLogger } from '@utils'
+import { Member, Network } from '@tribeplatform/gql-client/types'
+import { blockUtils, globalLogger } from '@utils'
+
 import { handleCreateEvent } from '../helpers.logics'
 
 const logger = globalLogger.setContext(`NetworkSubscription`)
@@ -15,18 +16,17 @@ export const handleMemberSubscription = async (
 
   const {
     networkId,
-    data: {
-      verb,
-      object: { id },
-    },
+    data: { verb, object },
+    entities: { network },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
+  const sentences = []
   switch (verb) {
-    case EventVerb.CREATED:
-      await handleCreateMemberEvent({ settings, webhook })
-      break
     case EventVerb.VERIFIED:
-      await handleCreateMemberEvent({ settings, webhook })
+      sentences.push(
+        `${blockUtils.createEntityHyperLink(object as Member)} joined the community`,
+      )
+      await handleCreateMemberEvent({ settings, network, sentences })
       break
     default:
       break
@@ -35,20 +35,14 @@ export const handleMemberSubscription = async (
 
 export const handleCreateMemberEvent = async (options: {
   settings: NetworkSettings
-  webhook: SubscriptionWebhook<Member>
+  network: Network
+  sentences: string[]
 }): Promise<void> => {
-  const { settings, webhook } = options
-  logger.verbose('handleCreateMemberInvitation called', { webhook })
-  const {
-    data: { object, verb, actor },
-  } = webhook
-  const { id: actorId } = actor
-  const { id: postId } = object
-
+  const { settings, network, sentences } = options
   await handleCreateEvent({
     settings,
-    verb,
-    postId,
-    actorId,
+    sentences,
+    spaceId: null,
+    network,
   })
 }

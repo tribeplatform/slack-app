@@ -1,60 +1,40 @@
+import { NetworkSettings } from '@prisma/client'
+import { ConnectionRepository } from '@repositories'
+import { Network } from '@tribeplatform/gql-client/types'
+import { globalLogger } from '@utils'
+
 import { sendSlackMessage } from '@/services'
-import { UpdateMessagePayload, WebhookEntities } from '@interfaces'
-import { NetworkSettings, PrismaClient } from '@prisma/client'
-import { globalLogger, isDeleted } from '@utils'
 
 const logger = globalLogger.setContext('MemberSubscriptionHelpers')
 
 export const handleCreateEvent = async (options: {
   settings: NetworkSettings
-  entities: WebhookEntities
-  verb: string
-  message: string
-  postId: string
+  spaceId?: string
+  sentences: string[]
+  context?: any[]
+  actions?: any[]
+  network: Network
 }): Promise<void> => {
-  const { settings, verb, entities, message, postId } = options
-  const { networkId } = settings
-  // const { post, space, actor, owner } = entities
+  logger.debug('handleCreateEvent called', { options })
 
-  //init clients
-  const prisma = new PrismaClient()
-  var connections = await prisma.connection.findMany({
+  const { settings, spaceId, sentences, context, actions, network } = options
+  const { networkId } = settings
+  const connections = await ConnectionRepository.findMany({
     where: { networkId },
-  })
-  //connections with matching space or the ones that have no spaceids==> whole community
-  connections = connections.filter(
-    connection =>
-      connection.spaceIds.includes(entities?.space ? entities?.space.id : null) ||
-      connection.spaceIds.length == 0,
+  }).then(connections =>
+    connections.filter(
+      con => !con.spaceIds.length || (spaceId && con.spaceIds.includes(spaceId)),
+    ),
   )
 
-  const arr: string[] = [
-    'space_membership.created',
-    'space_membership.deleted',
-    'space_join_request.created',
-    'space_join_request.accepted',
-    'member_invitation.created',
-    'member.verified',
-  ]
-
-  //define payload
-  const payload: UpdateMessagePayload = {
-    event: verb,
-    network: entities?.network ? entities?.network : null,
-    post: entities?.post ? entities?.post : null,
-    space: entities?.space ? entities?.space : null,
-    actor: entities?.actor ? entities?.actor : null,
-    member: verb != 'member_invitation.created' ? entities?.owner : null,
-    context: arr.includes(verb) ? false : true,
-  }
-
-  // logger.log('payload', payload)
-
-  const skip: boolean = isDeleted(payload.member) ? true : false
-
-  if (!skip) {
-    for (const connection of connections) {
-      await sendSlackMessage(connection.channelId, message, payload, settings)
-    }
+  for (const connection of connections) {
+    await sendSlackMessage({
+      channel: connection.channelId,
+      sentences,
+      context,
+      actions,
+      settings,
+      network,
+    })
   }
 }
