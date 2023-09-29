@@ -4,10 +4,18 @@ import slackify from 'slackify-html'
 const POST_TITLE_LIMIT = 100
 export const createHyperlink = ({ text, url }: { text: string; url: string }) =>
   `*<${url}|${escapeText(text)}>*`
-// `[${text}](${url})`
 
 export const createEntityHyperLink = (entity: Types.Member | Types.Space) =>
   createHyperlink({ text: entity.name, url: entity.url })
+
+export const createMemberEntityHyperLink = (
+  entity: Types.Member,
+  { networkDomain, memberId }: { networkDomain: string; memberId: string },
+) => {
+  const url = 'https://' + networkDomain + '/member/' + memberId
+  return createHyperlink({ text: entity.name, url })
+}
+
 export const createPostTitleBlock = (post: Types.Post) =>
   createTextBlock(
     createHyperlink({
@@ -19,9 +27,20 @@ export const createPostTitleBlock = (post: Types.Post) =>
     }),
   )
 
+export const createPostTitle = (post: Types.Post) =>
+  createHyperlink({
+    text:
+      post.title.length > POST_TITLE_LIMIT
+        ? `${post.title.substring(0, POST_TITLE_LIMIT)}...`
+        : post.title,
+    url: post.url,
+  })
+
 export const createPostContentQuote = (post: Types.Post) =>
   createQuote(parseHtml(post.shortContent))
+
 export const createQuote = (text: string) => `> ${text}`
+
 export const parseHtml = (text: string) => slackify(text)
 
 export const createEntityContext = ({
@@ -57,8 +76,10 @@ export const createTextSection = (text: string, type: string = 'mrkdwn') => ({
     text,
   },
 })
+
 export const createTextBlock = (text: string, type: string = 'mrkdwn') => ({
   blocks: [createTextSection(text, type)],
 })
+
 export const escapeText = (text: string): string =>
   text.replace('>', '&gt;').replace('<', '&lt;').replace('&', '&amp;')

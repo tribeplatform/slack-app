@@ -28,10 +28,6 @@ export class SlackClient {
     return this.client?.conversations.list()
   }
 
-  public async postMessage(options: { channel: string; text: string }) {
-    return this.client?.chat.postMessage(options)
-  }
-
   public async invite(options: { channel: string; users: string }) {
     return this.client?.conversations.invite(options)
   }
@@ -40,10 +36,10 @@ export class SlackClient {
     return this.client?.conversations.join(options)
   }
 
-  public async postMessageII({
+  public async postMessage({
     text,
-    blocks,
     channel,
+    blocks,
     username,
     image,
   }: PostMessageArguments) {

@@ -19,6 +19,7 @@ import { getDisconnectedSettingsResponse } from './helpers'
 import { getChannelModalSlate } from './slates/channel-modal.slate'
 
 import { getConnectSlackUrl } from '@/logics'
+import { getNetwork } from '@/utils/query.utils'
 import { PrismaClient } from '@prisma/client'
 import { randomBytes, randomUUID } from 'crypto'
 import { getAuthRevokeModalSlate } from './slates/auth-revoke-modal.slate'
@@ -54,11 +55,7 @@ const getAuthRedirectCallbackResponse = async (
     networkId,
     data: { actorId },
   } = webhook
-  const gqlClient = await getNetworkClient(networkId)
-  const network = await gqlClient.query({
-    name: 'network',
-    args: 'basic',
-  })
+  const network = await getNetwork(networkId)
   return getRedirectCallbackResponse({
     props: {
       url: await getConnectSlackUrl({
@@ -140,21 +137,14 @@ export const getOpenConnectionModalCallbackResponse = async (
       args: {
         variables: {
           limit: 20,
-          // after:
         },
         fields: {
           nodes: 'basic',
-          // edges: 'basic',
-          // pageInfo: 'basic',
         },
       },
     }),
     slackClient.getChannels(),
   ])
-  // spaces.edges[0].cursor
-  // spaces.pageInfo.endCursor
-  // logger.log('spaces', spaces)
-  // const spacesMaped = spaces.nodes.map(space => ({ value: space.id, text: space.name }))
 
   const channelOptions: ChannelFieldOption[] = channels?.channels?.map(channel => ({
     text: `${channel.is_channel ? '#' : '@'}${channel.name}`,
@@ -173,34 +163,32 @@ export const getOpenConnectionModalCallbackResponse = async (
     var savedChannels: string = connection.channelId
     var events = connection.events
   }
-  // logger.log(events)
-
-  const eventTypes = [
-    'postPublished',
-    'memberVerified',
-    'moderationCreated',
-    'moderationAccepted',
-    'moderationRejected',
-    'spaceMembershipCreated',
-    'spaceMembershipDeleted',
-    'spaceJoinRequestCreated',
-    'spaceJoinRequestAccepted',
-    'memberInvitationCreated',
+  const eventTypes: string[] = [
+    'post.published',
+    'member.verified',
+    'moderation.created',
+    'moderation.accepted',
+    'moderation.rejected',
+    'space_membership.created',
+    'space_membership.deleted',
+    'space_join_request.created',
+    'space_join_request.accepted',
+    'member_invitation.created',
   ]
 
   const getLabelFromEventType = (eventType: string): string => {
     // mapping of event types to their corresponding labels
     const labelMapping: Record<string, string> = {
-      postPublished: 'New Post',
-      memberVerified: 'Create Member',
-      moderationCreated: 'Send To Moderation',
-      moderationAccepted: 'Accept Moderation Item',
-      moderationRejected: 'Reject Moderation Item',
-      spaceMembershipCreated: 'Add Member To Space',
-      spaceMembershipDeleted: 'Remove Member From Space',
-      spaceJoinRequestCreated: 'Request To Join Space',
-      spaceJoinRequestAccepted: 'Accept Space Join Request',
-      memberInvitationCreated: 'Invite Member',
+      'post.published': 'New Post',
+      'member.verified': 'Create Member',
+      'moderation.created': 'Send To Moderation',
+      'moderation.accepted': 'Accept Moderation Item',
+      'moderation.rejected': 'Reject Moderation Item',
+      'space_membership.created': 'Add Member To Space',
+      'space_membership.deleted': 'Remove Member From Space',
+      'space_join_request.created': 'Request To Join Space',
+      'space_join_request.accepted': 'Accept Space Join Request',
+      'member_invitation.created': 'Invite Member',
     }
 
     return labelMapping[eventType] || eventType // Default to eventType if no mapping found
@@ -218,12 +206,14 @@ export const getOpenConnectionModalCallbackResponse = async (
       {
         id: 'channel',
         type: ChannelFieldType.Select,
+        required: true,
         label: 'Channel',
         options: channelOptions,
         isSearchable: true,
         dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
         defaultValue:
           typeof savedChannels != 'undefined' && savedChannels ? savedChannels : null,
+        // : channelOptions[0].value,
         appId,
       },
       {
@@ -233,9 +223,10 @@ export const getOpenConnectionModalCallbackResponse = async (
         options: spacesOptions,
         isSearchable: true,
         dataCallbackId: SettingsBlockCallback.SearchSlackChannel,
-        // defaultValue: spacesOptions[0].value,
         defaultValue:
-          typeof savedSpaces != 'undefined' && savedSpaces ? savedSpaces : 'Community',
+          typeof savedSpaces != 'undefined' && savedSpaces ? savedSpaces : null,
+        // defaultValue: spacesOptions[0].value,
+        // defaultValue: savedSpaces && savedSpaces.length > 0 ? savedSpaces : 'Community',
         appId,
       },
       ...eventFields,
@@ -252,7 +243,6 @@ export const getOpenConnectionModalCallbackResponse = async (
         enabled: true,
       },
     },
-    events,
   )
   return {
     type: WebhookType.Interaction,
@@ -279,26 +269,21 @@ export const getUpsertConnectionCallbackResponse = async (
 ): Promise<InteractionWebhookResponse> => {
   const {
     networkId,
-    data: {
-      actorId,
-      interactionId,
-      inputs: {
-        channel,
-        spaces,
-        postPublished,
-        memberVerified,
-        moderationCreated,
-        moderationAccepted,
-        moderationRejected,
-        spaceMembershipCreated,
-        spaceMembershipDeleted,
-        spaceJoinRequestCreated,
-        spaceJoinRequestAccepted,
-        memberInvitationCreated,
-      },
-    },
+    data: { actorId, interactionId, inputs },
   } = webhook
+  const {
+    channel,
+    spaces,
+    post,
+    postPublished,
+    member,
+    moderation,
+    space_membership,
+    space_join_request,
+    member_invitation,
+  } = inputs
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
+  console.log('$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$')
   logger.log('getUpsertConnectionCallbackResponse called', { webhook })
 
   //if it was a new connection
@@ -318,17 +303,29 @@ export const getUpsertConnectionCallbackResponse = async (
 
   const events: string[] = []
 
-  if (postPublished) events.push('postPublished')
-  if (memberVerified) events.push('memberVerified')
-  if (moderationCreated) events.push('moderationCreated')
-  if (moderationAccepted) events.push('moderationAccepted')
-  if (moderationRejected) events.push('moderationRejected')
-  if (spaceMembershipCreated) events.push('spaceMembershipCreated')
-  if (spaceMembershipDeleted) events.push('spaceMembershipDeleted')
-  if (spaceJoinRequestCreated) events.push('spaceJoinRequestCreated')
-  if (spaceJoinRequestAccepted) events.push('spaceJoinRequestAccepted')
-  if (memberInvitationCreated) events.push('memberInvitationCreated')
+  if ((post as any)?.published) events.push('post.published')
+  if ((member as any).verified) events.push('member.verified')
+  if ((moderation as any).created) events.push('moderation.created')
+  if ((moderation as any).accepted) events.push('moderation.accepted')
+  if ((moderation as any).rejected) events.push('moderation.rejected')
+  if ((space_membership as any).created) events.push('space_membership.created')
+  if ((space_membership as any).deleted) events.push('space_membership.deleted')
+  if ((space_join_request as any).created) events.push('space_join_request.created')
+  if ((space_join_request as any).accepted) events.push('space_join_request.accepted')
+  if ((member_invitation as any).created) events.push('member_invitation.created')
 
+  // const eventTypes: string[] = [
+  //   'post.published',
+  //   'member.verified',
+  //   'moderation.created',
+  //   'moderation.accepted',
+  //   'moderation.rejected',
+  //   'space_membership.created',
+  //   'space_membership.deleted',
+  //   'space_join_request.created',
+  //   'space_join_request.accepted',
+  //   'member_invitation.created',
+  // ]
   await ConnectionRepository.upsert(connectionId, {
     memberId: String(actorId),
     networkId: String(networkId),
@@ -336,16 +333,10 @@ export const getUpsertConnectionCallbackResponse = async (
     spaceIds: String(spaces),
     events,
   })
-
-  // bot joins and sends welcome message
   const [slackClient] = await Promise.all([getSlackBotClient(settings)])
   await slackClient.join({
     channel: channel as string,
   })
-  // await slackClient.postMessage({
-  //   channel: channel as string,
-  //   text: 'Hello world from slack bot',
-  // })
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -354,7 +345,6 @@ export const getUpsertConnectionCallbackResponse = async (
         {
           id: interactionId + randomUUID(),
           type: InteractionType.Reload,
-          // slate: rawSlateToDto(slate),
           props: {
             dynamicBlockKeys: ['settings'],
           },
@@ -373,14 +363,38 @@ export const getSearchSlackChannelCallbackResponse = async (
 ): Promise<InteractionWebhookResponse> => {
   const {
     networkId,
-    data: {
-      actorId,
-      interactionId,
-      inputs: { channel, spaces },
-    },
+    data: { actorId, interactionId },
   } = webhook
+  const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
+  const [gqlClient, slackClient] = await Promise.all([
+    getNetworkClient(settings.networkId),
+    getSlackBotClient(settings),
+  ])
 
-  // logger.log(webhook)
+  var [spaces, channels] = await Promise.all([
+    gqlClient.query({
+      name: 'spaces',
+      args: {
+        variables: {
+          limit: 20,
+        },
+        fields: {
+          nodes: 'basic',
+        },
+      },
+    }),
+    slackClient.getChannels(),
+  ])
+
+  const channelOptions: ChannelFieldOption[] = channels?.channels?.map(channel => ({
+    text: `${channel.is_channel ? '#' : '@'}${channel.name}`,
+    value: channel.id,
+  }))
+
+  const spacesOptions: ChannelFieldOption[] = spaces?.nodes?.map(space => ({
+    text: space.name,
+    value: space.id,
+  }))
   return {
     type: WebhookType.Interaction,
     status: WebhookStatus.Succeeded,
@@ -390,7 +404,10 @@ export const getSearchSlackChannelCallbackResponse = async (
           id: interactionId,
           type: InteractionType.Data,
           props: {
-            items: [{ text: 'Bettermode Dev Portal', value: '1N25ZZyz5c' }],
+            // items: [{ text: 'Bettermode Dev Portal', value: '1N25ZZyz5c' }],
+            items: channelOptions
+              .map(channel => ({ text: channel.text, value: channel.value }))
+              .filter(option => option?.text && option?.value),
           },
         },
       ],
@@ -430,7 +447,6 @@ export const getRemoveConnectionCallBackResponse = async (
   webhook: InteractionWebhook,
   connectionId: string,
 ): Promise<InteractionWebhookResponse> => {
-  // logger.log(webhook)
   const {
     data: { interactionId },
   } = webhook

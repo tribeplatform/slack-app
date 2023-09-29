@@ -34,9 +34,12 @@ export class WebhookController {
   @OpenAPI({ summary: 'Receives webhooks and acts upon them.' })
   @ResponseSchema(WebhookResponseDto)
   @HttpCode(200)
-  async receiveWebhook(@Body() webhook: Webhook): Promise<WebhookResponse> {
+  async receiveWebhook(
+    @Body() webhook: Webhook,
+    //@HeaderParams() header,
+  ): Promise<WebhookResponse> {
     this.logger.verbose('Received webhook', webhook)
-
+    // this.logger.verbose(header)
     switch (webhook.type) {
       case WebhookType.Test:
         return getChallengeResponse(webhook)

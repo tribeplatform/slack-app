@@ -3,6 +3,8 @@ import { GeneralWebhookResponse, SubscriptionWebhook } from '@interfaces'
 import { EventNoun } from '@tribeplatform/gql-client/global-types'
 import {
   Member,
+  MemberInvitation,
+  ModerationEntityType,
   ModerationItem,
   Post,
   Space,
@@ -10,17 +12,18 @@ import {
 } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
 import { handleMemberSubscription } from './member'
+import { handleMemberInvitationSubscription } from './member-invitation'
 import { handleModerationSubscription } from './moderation'
 import { handlePostSubscription } from './post'
+import { handleSpaceJoinRequestSubscription } from './space-join-request'
 import { handleSpaceMembershipSubscription } from './space-membership'
-import { handleSpaceJoinRequestSubscription } from './space_join_request'
 
 const logger = globalLogger.setContext(`Subscription`)
 
 export const handleSubscriptionWebhook = async (
   webhook: SubscriptionWebhook,
 ): Promise<GeneralWebhookResponse> => {
-  logger.debug('handleSubscriptionWebhook called', { webhook })
+  // logger.debug('handleSubscriptionWebhook called', { webhook })
 
   const {
     data: { noun },
@@ -43,6 +46,11 @@ export const handleSubscriptionWebhook = async (
       case EventNoun.SPACE_JOIN_REQUEST:
         await handleSpaceJoinRequestSubscription(
           webhook as SubscriptionWebhook<SpaceJoinRequest>,
+        )
+        break
+      case EventNoun.MEMBER_INVITATION:
+        await handleMemberInvitationSubscription(
+          webhook as SubscriptionWebhook<MemberInvitation>,
         )
         break
 

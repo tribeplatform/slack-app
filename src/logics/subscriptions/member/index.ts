@@ -13,10 +13,15 @@ export const handleMemberSubscription = async (
   webhook: SubscriptionWebhook<Member>,
 ): Promise<void> => {
   logger.debug('handleMemberSubscription called', { webhook })
-
   const {
     networkId,
-    data: { verb, object },
+    data: {
+      target: { networkDomain },
+      object: { id: memberId },
+      object,
+      verb,
+      name,
+    },
     entities: { network },
   } = webhook
   const settings = await NetworkSettingsRepository.findUniqueOrThrow(networkId)
@@ -24,25 +29,32 @@ export const handleMemberSubscription = async (
   switch (verb) {
     case EventVerb.VERIFIED:
       sentences.push(
-        `${blockUtils.createEntityHyperLink(object as Member)} joined the community`,
+        `${blockUtils.createMemberEntityHyperLink(object, {
+          networkDomain,
+          memberId: memberId,
+        })} joined the community`,
       )
-      await handleCreateMemberEvent({ settings, network, sentences })
       break
+
     default:
       break
   }
+  await handleVerifyMemberEvent({ settings, network, sentences, name })
 }
 
-export const handleCreateMemberEvent = async (options: {
+export const handleVerifyMemberEvent = async (options: {
   settings: NetworkSettings
   network: Network
   sentences: string[]
+  spaceId?: string
+  name: string
 }): Promise<void> => {
-  const { settings, network, sentences } = options
+  logger.log('handleVerifyMemberEvent called')
+  const { settings, network, sentences, name } = options
   await handleCreateEvent({
     settings,
     sentences,
-    spaceId: null,
     network,
+    name,
   })
 }

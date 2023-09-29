@@ -1,4 +1,4 @@
-import { NetworkSettings } from '@prisma/client'
+import { Connection, NetworkSettings } from '@prisma/client'
 import { ConnectionRepository } from '@repositories'
 import { Network } from '@tribeplatform/gql-client/types'
 import { globalLogger } from '@utils'
@@ -14,19 +14,36 @@ export const handleCreateEvent = async (options: {
   context?: any[]
   actions?: any[]
   network: Network
+  name: string
 }): Promise<void> => {
   logger.debug('handleCreateEvent called', { options })
 
-  const { settings, spaceId, sentences, context, actions, network } = options
+  const { settings, spaceId, sentences, context, actions, network, name } = options
   const { networkId } = settings
-  const connections = await ConnectionRepository.findMany({
-    where: { networkId },
-  }).then(connections =>
-    connections.filter(
-      con => !con.spaceIds.length || (spaceId && con.spaceIds.includes(spaceId)),
-    ),
-  )
+  var connections: Connection[]
+  if (spaceId) {
+    connections = await ConnectionRepository.findMany({
+      where: { networkId },
+    }).then(connections =>
+      connections.filter(
+        con =>
+          con.events.includes(name) &&
+          (con.spaceIds.includes('null') || con.spaceIds.includes(spaceId)),
+      ),
+    )
+  } else {
+    connections = await ConnectionRepository.findMany({
+      where: { networkId },
+    }).then(connections => connections.filter(con => con.events.includes(name)))
+  }
+  // const connectionsII: Connection[] = await ConnectionRepository.findMany({
+  //   where: { networkId },
+  // })
 
+  // for (var con of connectionsII) {
+  //   console.log('spaceid length', con.spaceIds.length)
+  // }
+  // console.log(connections)
   for (const connection of connections) {
     await sendSlackMessage({
       channel: connection.channelId,

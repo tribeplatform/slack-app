@@ -1,6 +1,7 @@
 import { RawSlateDto } from '@tribeplatform/slate-kit/dtos'
+import { globalLogger } from '@utils'
 import { ChannelField } from '../constants'
-
+const logger = globalLogger.setContext('getChannelModalSlate.slates')
 export const getChannelModalSlate = (
   id: string,
   fields: ChannelField[],
@@ -13,22 +14,22 @@ export const getChannelModalSlate = (
       autoDisabled?: boolean
     }
   },
-  events?: string[],
 ): RawSlateDto => {
-  console.log(events)
   const { action, callbackId } = options
+  // logger.log(fields)
 
-  return {
-    rootBlock: id,
+  const result = {
+    rootBlock: 'form',
     blocks: [
       {
-        id,
+        id: 'form',
         name: 'Form',
         props: {
           callbackId: callbackId,
-          defaultValues: fields.reduce((acc, field) => {
-            return { ...acc, [field.id]: field.defaultValue }
-          }, {}),
+          defaultValues: fields.reduce(
+            (acc, field) => ({ ...acc, [field.id]: field.defaultValue }),
+            {},
+          ),
         },
         children: ['fields'],
       },
@@ -88,4 +89,7 @@ export const getChannelModalSlate = (
         : []),
     ],
   }
+
+  // logger.log(result)
+  return result
 }

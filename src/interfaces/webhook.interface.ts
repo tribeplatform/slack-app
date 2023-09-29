@@ -27,6 +27,7 @@ export interface WebhookEntities {
   space?: Space
   post?: Post
   postType?: PostType
+  reply?: Post
 }
 
 export interface BaseWebhook {

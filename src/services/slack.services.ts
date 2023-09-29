@@ -32,15 +32,21 @@ export const sendSlackMessage = async ({
   try {
     const blocks = []
     const text = sentences[0]
-    sentences[0] = `:bell: ${text}`
+    sentences[0] = text.startsWith(':bell:') ? text : `:bell: ${text}`
     sentences.forEach(sentence => blocks.push(blockUtils.createTextSection(sentence)))
+    //here have to make sure the member or space are present otherwise
+    //if we only have context and want to push it context as element we get the Internship 2023Internship 2023
+    // Log in - Internship 2023
+    // Join Internship 2023 to start sharing and connecting with like-minded people.
     if (context) {
+      // blocks.concat({
       blocks.push({
         type: 'context',
         elements: context,
       })
     }
-    if (actions?.length) {
+    // console.log('context', context)
+    if (actions?.length > 0) {
       blocks.push({
         type: 'actions',
         elements: actions.map(action => [
@@ -58,9 +64,9 @@ export const sendSlackMessage = async ({
     }
 
     const image = (network.favicon as Types.Image)?.urls?.small
-
     const [slackClient] = await Promise.all([getSlackBotClient(settings)])
-    await slackClient.postMessageII({
+
+    await slackClient.postMessage({
       text,
       blocks,
       channel,

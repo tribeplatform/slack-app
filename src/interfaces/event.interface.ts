@@ -61,6 +61,7 @@ export interface EventTarget {
   mediaId?: string
   memberBadgeId?: string
   templateId?: string
+  networkDomain?: string
 }
 
 export interface BaseEventObject {

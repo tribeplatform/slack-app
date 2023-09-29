@@ -23,7 +23,7 @@ export const getConnectedSettingsSlate = (options: {
 
       ...getConnectedChannelsSettingsBlocks({
         id: 'channels',
-        action: connections.length < 3 ? 'New Connection' : null,
+        action: connections.length < 5 ? 'New Connection' : null,
         actionCallbackId: SettingsBlockCallback.OpenConnectionModal,
         actionVariant: 'primary',
         connections,
@@ -34,7 +34,7 @@ export const getConnectedSettingsSlate = (options: {
         actionCallbackId: SettingsBlockCallback.OpenAuthRevokeModal,
         actionVariant: 'danger',
         description:
-          'Your app is successfully connected to Slack. To disconnect the integration at any time, simply click on the provided button.',
+          "Your app is successfully connected to Slack. To disconnect the integration at any time, simply click on the 'Revoke' button.",
       }),
     ],
   }
