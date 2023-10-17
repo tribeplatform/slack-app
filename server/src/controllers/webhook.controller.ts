@@ -195,7 +195,7 @@ class WebhookController {
     if (webhookUrls.length) {
       let skip = false;
       const tribeClient = await getTribeClient({ networkId });
-      const network = await tribeClient.network.get('all');
+      const network = await tribeClient.query({name: 'network', args: {favicon: 'all'}})
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
         network,
@@ -251,7 +251,7 @@ class WebhookController {
           break;
       }
       if (memberId) {
-        const member = await tribeClient.members.get({ id: memberId }, 'all');
+        const member = await tribeClient.query({name: 'member', args: {variables: {id: memberId}, fields: {profilePicture: 'all'}}})
         payload.member = member;
         if (this.isDeleted(member)) skip = true;
         if (input?.data?.name === 'space_membership.created' && memberId === actorId && this.isRecentlyJoined(member, input?.data?.time)) {
@@ -259,15 +259,15 @@ class WebhookController {
         }
       }
       if (spaceId) {
-        const space = await tribeClient.spaces.get({ id: spaceId }, 'all');
+        const space = await tribeClient.query({name: 'space', args: {variables: {id: spaceId}, fields: {image: 'all'}}})
         payload.space = space;
       }
       if (actorId) {
-        const actor = await tribeClient.members.get({ id: actorId }, 'all');
+        const actor = await tribeClient.query({name: 'member', args: {variables: {id: actorId}, fields: {}}})
         payload.actor = actor;
       }
       if (postId) {
-        const post = await tribeClient.posts.get({ id: postId }, 'all');
+        const post = await tribeClient.query({name: 'post', args: {variables: {id: postId}, fields: {repliedTos: {}}}})
         payload.post = post;
       }
       if (!skip) webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
