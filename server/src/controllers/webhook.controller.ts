@@ -195,7 +195,7 @@ class WebhookController {
     if (webhookUrls.length) {
       let skip = false;
       const tribeClient = await getTribeClient({ networkId });
-      const network = await tribeClient.query({name: 'network', args: {favicon: 'all'}})
+      const network = await tribeClient.query({name: 'network', args: {fields: {favicon: 'all'}}})
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
         network,
