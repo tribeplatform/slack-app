@@ -15,7 +15,7 @@
   "dependencies": {
     "@slack/web-api": "^6.7.1",
     "@slack/webhook": "^6.1.0",
-    "@tribeplatform/gql-client": "2.3.0",
+    "@tribeplatform/gql-client": "2.3.5",
     "@tribeplatform/node-logger": "^1.0.0",
     "@types/react": "^18.0.3",
     "@types/react-dom": "^18.0.0",
