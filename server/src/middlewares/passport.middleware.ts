@@ -6,6 +6,7 @@ import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 import { createLogger } from '@/utils/logger';
 import SlackService from '@/services/slack.services';
+import { verifyOAuthState } from '@/utils/auth';
 import { GlobalClient, Types } from '@tribeplatform/gql-client';
 
 const logger = createLogger('PassportMiddleware')
@@ -52,8 +53,11 @@ const init = (app: express.Application) => {
       },
       async (req: express.Request, accessToken: string, refreshToken: string, params: Params, profile, done) => {
         try {
-          let buff = Buffer.from(String(req.query.state), 'base64');
-          const { n: networkId, m: memberId, s: spaceIds } = JSON.parse(buff.toString('ascii')) as { n: string; m: string; s: string };
+          const state = verifyOAuthState(req.query.state);
+          if (!state) {
+            return done(new Error('Invalid or expired OAuth state'), false);
+          }
+          const { networkId, memberId, spaceIds } = state;
           const webhook: IncomingWebhookType = await IncomingWebhookModel.create({
             channel: params?.incoming_webhook?.channel,
             channelId: params?.incoming_webhook?.channel_id,
