@@ -1,20 +1,21 @@
 import { NextFunction, Request, Response } from 'express';
 import passport from 'passport';
-import auth from '@utils/auth';
+import { isSafeRedirect, signOAuthState, verifyConnectToken, verifyOAuthState } from '@utils/auth';
 class AuthController {
   public webhookAuth = async (req: Request, res: Response, next: NextFunction) => {
-    const { jwt, member, spaceIds, redirect = '/' } = req.query;
+    const { jwt } = req.query;
     if (!jwt) {
       res.status(400).json({ success: false, message: '"jwt" is a mandatory param.' });
       return;
     }
     try {
-      const decodedJwt = auth.verify(jwt as string) as any;
-      if (!decodedJwt || !decodedJwt.sub) {
+      const context = verifyConnectToken(jwt);
+      if (!context) {
         res.status(403).json({ success: false, message: `You don't have access to this page.` });
         return;
       }
-      const state = Buffer.from(JSON.stringify({ n: decodedJwt.sub, m: member, s: spaceIds, r: redirect }), 'ascii').toString('base64');
+      // Everything carried through the OAuth flow comes from the signed connect token, never from the query string.
+      const state = signOAuthState(context);
       passport.authorize('webhook', {
         state,
       })(req, res, next);
@@ -22,12 +23,21 @@ class AuthController {
       next(error);
     }
   };
+  /**
+   * Rejects OAuth callbacks whose `state` was not issued by this app, before the authorization code is exchanged.
+   */
+  public verifyCallbackState = (req: Request, res: Response, next: NextFunction) => {
+    if (!verifyOAuthState(req.query.state)) {
+      res.status(403).json({ success: false, message: 'Invalid or expired state.' });
+      return;
+    }
+    next();
+  };
   public webhookAuthCallback = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let buff = Buffer.from(String(req.query.state), 'base64');
-      const { r: redirect } = JSON.parse(buff.toString('ascii')) as { r: string };
+      const redirect = verifyOAuthState(req.query.state)?.redirect;
 
-      if (!!redirect) {
+      if (isSafeRedirect(redirect)) {
         return res.redirect(redirect);
       }
 
@@ -40,9 +50,8 @@ class AuthController {
   };
   public webhookAuthFailure = async (req: Request, res: Response, next: NextFunction) => {
     try {
-      let buff = Buffer.from(String(req.query.state), 'base64');
-      const { r: redirect } = JSON.parse(buff.toString('ascii')) as { r: string };
-      if (!!redirect) {
+      const redirect = verifyOAuthState(req.query.state)?.redirect;
+      if (isSafeRedirect(redirect)) {
         return res.redirect(redirect);
       }
       res.status(200).json({
