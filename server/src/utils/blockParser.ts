@@ -3,7 +3,11 @@ import slackify from 'slackify-html';
 
 const POST_TITLE_LIMIT = 100;
 export const createHyperlink = ({ text, url }: { text: string; url: string }): string => `*<${url}|${escapeText(text)}>*`;
-export const createEntityHyperLink = (entity: Types.Member | Types.Space) => createHyperlink({ text: entity?.name || (entity as Types.Member)?.username || entity.id, url: entity.url });
+export const createEntityHyperLink = (entity: Types.Member | Types.Space) => {
+  // Webhook payloads do not always carry the actor/member/space (e.g. deleted entities).
+  if (!entity) return 'Someone';
+  return createHyperlink({ text: entity.name || (entity as Types.Member).username || entity.id, url: entity.url });
+};
 export const createPostTitleBlock = (post: Types.Post) =>
   createTextBlock(
     createHyperlink({
