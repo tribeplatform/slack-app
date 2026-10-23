@@ -1,18 +1,62 @@
+jest.mock('@/config', () => ({
+  CLIENT_SECRET: 'test-client-secret',
+  SIGNING_SECRET: 'test-signing-secret',
+  GRAPHQL_URL: 'https://api.bettermode.test/graphql',
+  SERVER_URL: 'https://slack-app.test',
+  SLACK_CLIENT_ID: 'slack-client-id',
+  SLACK_CLIENT_SECRET: 'slack-client-secret',
+}));
+
 import App from '@/app';
-import IndexRoute from '@routes/index.route';
+import HealthRoute from '@routes/health.route';
+import WebhookRoute from '@routes/webhook.route';
 import request from 'supertest';
+import { getSignature } from '@/utils/signature';
 
-afterAll(async () => {
-  await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
-});
+// DB_HOST is not set, so App does not try to connect to MongoDB.
+const buildServer = () => new App([new WebhookRoute(), new HealthRoute()]).getServer();
 
-describe('Testing Index', () => {
-  describe('[GET] /', () => {
-    it('response statusCode 200', () => {
-      const indexRoute = new IndexRoute();
-      const app = new App([indexRoute]);
+describe('App', () => {
+  it('[GET] /_health responds 200', async () => {
+    // Arrange
+    const server = buildServer();
 
-      return request(app.getServer()).get(`${indexRoute.path}`).expect(200);
-    });
+    // Act
+    const res = await request(server).get('/_health');
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(res.text).toBe('Ok');
+  });
+
+  it('[POST] /api/webhook rejects an unsigned request with 403', async () => {
+    // Arrange
+    const server = buildServer();
+
+    // Act
+    const res = await request(server).post('/api/webhook').send({ type: 'TEST', data: { challenge: 'abc' } });
+
+    // Assert
+    expect(res.status).toBe(403);
+  });
+
+  it('[POST] /api/webhook answers a signed TEST challenge', async () => {
+    // Arrange
+    const server = buildServer();
+    const body = JSON.stringify({ type: 'TEST', data: { challenge: 'abc' } });
+    const timestamp = Date.now();
+    const signature = getSignature({ secret: 'test-signing-secret', body, timestamp });
+
+    // Act
+    const res = await request(server)
+      .post('/api/webhook')
+      .set('Content-Type', 'application/json')
+      .set('x-tribe-request-timestamp', String(timestamp))
+      .set('x-tribe-signature', signature)
+      .send(body);
+
+    // Assert
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ type: 'TEST', status: 'SUCCEEDED', data: { challenge: 'abc' } });
   });
 });
