@@ -85,7 +85,7 @@ class WebhookController {
     const webhooks = await IncomingWebhookModel.find({
       networkId,
     })
-      .select('_id channel spaceIds teamName events id userId memberId')
+      .select('_id channel spaceIds teamName events id userId memberId tokenInactiveAt')
       .lean();
 
     switch (input.context) {
@@ -234,6 +234,7 @@ class WebhookController {
     const { object } = input?.data as { object: any; networkId: string };
     const spaceId = object?.spaceId;
     const webhookUrls = webhooks
+      .filter(webhook => !webhook?.tokenInactiveAt)
       .filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1)
       .filter(webhook => {
         if (spaceId) return !webhook.spaceIds.length || webhook.spaceIds.indexOf(spaceId) !== -1;

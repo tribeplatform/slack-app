@@ -13,6 +13,9 @@ jest.mock('@slack/web-api', () => {
   };
 });
 
+const mockUpdateMany = jest.fn(async (..._args: any[]) => ({}));
+jest.mock('@/models/incomingWebhook.model', () => ({ updateMany: (...args) => mockUpdateMany(...args) }));
+
 import { ErrorCode } from '@slack/web-api';
 import SlackService, { isInactiveTokenError, resetInactiveTokens, UpdateMessagePayload } from '@/services/slack.services';
 import { createEntityHyperLink } from '@/utils/blockParser';
@@ -50,6 +53,42 @@ describe('SlackService', () => {
     expect(mockPostMessage).toHaveBeenCalledTimes(1);
     expect(mockLogger.warn).toHaveBeenCalledTimes(1);
     expect(mockLogger.error).not.toHaveBeenCalled();
+  });
+
+  it('persists the inactive flag on the connections that use the revoked token', async () => {
+    // Arrange
+    mockPostMessage.mockRejectedValue(platformError('token_revoked'));
+
+    // Act
+    await new SlackService('xoxb-revoked').sendSlackMessage('C1', payload);
+
+    // Assert
+    expect(mockUpdateMany).toHaveBeenCalledTimes(1);
+    expect(mockUpdateMany).toHaveBeenCalledWith(
+      { accessToken: 'xoxb-revoked', networkId: 'net1' },
+      { $set: { tokenInactiveAt: expect.any(Date), tokenInactiveReason: 'token_revoked' } },
+    );
+  });
+
+  it('still resolves when persisting the inactive flag fails', async () => {
+    // Arrange
+    mockPostMessage.mockRejectedValue(platformError('account_inactive'));
+    mockUpdateMany.mockRejectedValueOnce(new Error('mongo down'));
+
+    // Act + Assert
+    await expect(new SlackService('xoxb-revoked').sendSlackMessage('C1', payload)).resolves.toBeUndefined();
+    expect(mockLogger.error).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not flag the connection for other Slack errors', async () => {
+    // Arrange
+    mockPostMessage.mockRejectedValue(platformError('channel_not_found'));
+
+    // Act
+    await new SlackService('xoxb-1').sendSlackMessage('C1', payload);
+
+    // Assert
+    expect(mockUpdateMany).not.toHaveBeenCalled();
   });
 
   it('keeps sending for other tokens after one is revoked', async () => {

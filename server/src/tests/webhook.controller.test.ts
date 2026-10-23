@@ -257,4 +257,37 @@ describe('WebhookController', () => {
     expect(sendSlackMessage).toHaveBeenCalledWith('C1', expect.anything());
     expect(unhandled).not.toHaveBeenCalled();
   });
+
+  it('skips connections whose Slack token was flagged inactive', async () => {
+    // Arrange
+    const SlackService = require('@/services/slack.services') as jest.Mock;
+    const sendSlackMessage = jest.fn(async () => undefined);
+    SlackService.mockImplementation(() => ({ sendSlackMessage }));
+    const webhooks = [
+      { accessToken: 'xoxb-revoked', channelId: 'C1', spaceIds: [], events: ['member.verified'], tokenInactiveAt: new Date() },
+      { accessToken: 'xoxb-valid', channelId: 'C2', spaceIds: [], events: ['member.verified'] },
+    ];
+    mockedModel.find.mockReturnValue({ lean: async () => webhooks });
+    mockedGetTribeClient.mockResolvedValue({ query: jest.fn(async () => ({ id: 'm1', name: 'Jane' })) });
+
+    // Act
+    await call(controller, { type: 'SUBSCRIPTION', networkId: 'net1', data: { name: 'member.verified', object: { id: 'm1' } } });
+
+    // Assert
+    expect(sendSlackMessage).toHaveBeenCalledTimes(1);
+    expect(sendSlackMessage).toHaveBeenCalledWith('C2', expect.anything());
+  });
+
+  it('does not call Bettermode when every matching connection is inactive', async () => {
+    // Arrange
+    const webhooks = [{ accessToken: 'xoxb-revoked', channelId: 'C1', spaceIds: [], events: ['member.verified'], tokenInactiveAt: new Date() }];
+    mockedModel.find.mockReturnValue({ lean: async () => webhooks });
+
+    // Act
+    const result = await call(controller, { type: 'SUBSCRIPTION', networkId: 'net1', data: { name: 'member.verified', object: { id: 'm1' } } });
+
+    // Assert
+    expect(result).toEqual({ type: 'SUBSCRIPTION', status: 'SUCCEEDED', data: {} });
+    expect(mockedGetTribeClient).not.toHaveBeenCalled();
+  });
 });

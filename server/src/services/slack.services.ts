@@ -4,6 +4,7 @@ import { ChatPostMessageArguments, ErrorCode, WebClient } from '@slack/web-api';
 import * as blockUtils from '@utils/blockParser';
 import * as utils from '@utils/util';
 import { Types } from '@tribeplatform/gql-client';
+import IncomingWebhookModel from '@/models/incomingWebhook.model';
 
 // One logger for the module: every node-logger instance registers its own process
 // 'uncaughtException' handler, so creating one per SlackService leaked listeners.
@@ -43,10 +44,25 @@ export interface PostMessageArguments {
 }
 class SlackService {
   private slackClient: WebClient;
+  private readonly token: string;
   private readonly tokenKey: string;
   constructor(token: string) {
     this.slackClient = new WebClient(token);
+    this.token = token;
     this.tokenKey = tokenKey(token);
+  }
+  /**
+   * Flags every connection that uses this token, so it is skipped on every pod and after restarts.
+   * Reconnecting the workspace creates a new connection with a new token, which is not flagged.
+   */
+  private async markTokenInactive(reason: string, networkId?: string) {
+    try {
+      const filter: Record<string, string> = { accessToken: this.token };
+      if (networkId) filter.networkId = networkId;
+      await IncomingWebhookModel.updateMany(filter, { $set: { tokenInactiveAt: new Date(), tokenInactiveReason: reason } });
+    } catch (err) {
+      logger.error(err);
+    }
   }
   public async postMessage({ text, blocks, channel, username, image }: PostMessageArguments) {
     if (!Array.isArray(blocks)) blocks = [blocks];
@@ -188,6 +204,7 @@ class SlackService {
     } catch (err) {
       if (isInactiveTokenError(err)) {
         inactiveTokens.add(this.tokenKey);
+        await this.markTokenInactive(getSlackErrorCode(err), payload?.network?.id);
         logger.warn(
           `Slack token is no longer valid (${getSlackErrorCode(err)}), skipping this workspace until it is reconnected networkId=${
             payload?.network?.id

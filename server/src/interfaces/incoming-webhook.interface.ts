@@ -16,4 +16,6 @@ export interface IncomingWebhook {
   memberId: string
   spaceIds: string[]
   events: string[]
+  tokenInactiveAt?: Date
+  tokenInactiveReason?: string
 }
