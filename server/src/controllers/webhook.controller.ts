@@ -7,7 +7,7 @@ import SlackService, { UpdateMessagePayload } from '@/services/slack.services';
 import IncomingWebhookModel from '@/models/incomingWebhook.model';
 import { IncomingWebhook as IncomingWebhookType } from '@/interfaces/incoming-webhook.interface';
 import { getNetworkHostnames, resolveRedirect, signConnectToken } from '@/utils/auth';
-import { getTribeClient, listMemberByIds } from '@/utils/tribe_client';
+import { getNetwork, getTribeClient, listMemberByIds } from '@/utils/tribe_client';
 import { uniq, toMap } from '@utils/util';
 import { Member } from '@tribeplatform/gql-client/types';
 import { Logger } from '@tribeplatform/node-logger'
@@ -243,7 +243,7 @@ class WebhookController {
     if (webhookUrls.length) {
       let skip = false;
       const tribeClient = await getTribeClient({ networkId });
-      const network = await tribeClient.query({name: 'network', args: {fields: {favicon: 'all'}} as any })
+      const network = await getNetwork(networkId, tribeClient);
       const payload: UpdateMessagePayload = {
         event: input?.data?.name,
         network,
@@ -311,8 +311,11 @@ class WebhookController {
         payload.space = space;
       }
       if (actorId) {
-        const actor = await tribeClient.query({name: 'member', args: {variables: {id: actorId}, fields: {}}})
-        payload.actor = actor;
+        // post.published (the most common event) has the author as both member and actor; don't fetch it twice.
+        payload.actor =
+          actorId === memberId && payload.member
+            ? payload.member
+            : await tribeClient.query({ name: 'member', args: { variables: { id: actorId }, fields: {} } });
       }
       if (postId) {
         const post = await tribeClient.query({name: 'post', args: {variables: {id: postId}, fields: {repliedTos: {}}}})
