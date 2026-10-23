@@ -55,6 +55,16 @@ const incomingWebhookSchema: Schema = new Schema({
       type: String,
     },
   ],
+  // Set when Slack permanently rejects the token (token_revoked, account_inactive, invalid_auth).
+  // Optional, so existing documents need no migration.
+  tokenInactiveAt: {
+    type: Date,
+    required: false,
+  },
+  tokenInactiveReason: {
+    type: String,
+    required: false,
+  },
 });
 
 incomingWebhookSchema.index({ networkId: 1 });
