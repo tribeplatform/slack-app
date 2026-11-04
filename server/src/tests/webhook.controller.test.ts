@@ -21,6 +21,7 @@ jest.mock('@/models/incomingWebhook.model', () => ({
 
 jest.mock('@/utils/tribe_client', () => ({
   getTribeClient: jest.fn(),
+  getNetwork: jest.fn(async (networkId: string, client: any) => client.query({ name: 'network' })),
   listMemberByIds: jest.fn(async () => []),
 }));
 
