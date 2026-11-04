@@ -58,6 +58,11 @@ const init = (app: express.Application) => {
             return done(new Error('Invalid or expired OAuth state'), false);
           }
           const { networkId, memberId, spaceIds } = state;
+          if (!params?.incoming_webhook?.channel_id || !params?.access_token) {
+            // Slack finished the flow without granting a channel webhook; send the user to the failure page instead of a 500.
+            logger.warn(`Slack OAuth returned no incoming webhook networkId=${networkId} teamId=${params?.team_id}`);
+            return done(null, false);
+          }
           const webhook: IncomingWebhookType = await IncomingWebhookModel.create({
             channel: params?.incoming_webhook?.channel,
             channelId: params?.incoming_webhook?.channel_id,
@@ -73,22 +78,27 @@ const init = (app: express.Application) => {
             spaceIds: spaceIds?.split(',') || [],
             events: DEFAULT_EVENTS,
           });
-          const globalClient = new GlobalClient({
-            clientId: CLIENT_ID,
-            clientSecret: CLIENT_SECRET,
-            graphqlUrl: GRAPHQL_URL,
-          });
+          try {
+            const globalClient = new GlobalClient({
+              clientId: CLIENT_ID,
+              clientSecret: CLIENT_SECRET,
+              graphqlUrl: GRAPHQL_URL,
+            });
 
-          const tribeClient = await globalClient.getTribeClient({
-            networkId,
-          });
-          const network = await tribeClient.network.get('all');
-          const options: any = { username: network.name, channel: webhook.channelId };
-          if (network?.favicon) {
-            const image = (network?.favicon as Types.Image)?.urls?.thumb || (network?.favicon as Types.Image)?.url;
-            options.image = image;
+            const tribeClient = await globalClient.getTribeClient({
+              networkId,
+            });
+            const network = await tribeClient.network.get('all');
+            const options: any = { username: network.name, channel: webhook.channelId };
+            if (network?.favicon) {
+              const image = (network?.favicon as Types.Image)?.urls?.thumb || (network?.favicon as Types.Image)?.url;
+              options.image = image;
+            }
+            await new SlackService(webhook.accessToken).sendWelcomeMessage(options);
+          } catch (err) {
+            // The connection is saved; a failed welcome message (Bettermode 429, Slack error) must not turn the install into a 500.
+            logger.error(err);
           }
-          await new SlackService(webhook.accessToken).sendWelcomeMessage(options);
           done(null, webhook);
         } catch (err) {
           logger.error('An error occured during the SlackStrategy handling');

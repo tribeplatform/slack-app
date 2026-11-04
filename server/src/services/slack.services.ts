@@ -1,9 +1,30 @@
+import { createHash } from 'crypto';
 import { createLogger } from '@/utils/logger';
-import { ChatPostMessageArguments, WebClient } from '@slack/web-api';
+import { ChatPostMessageArguments, ErrorCode, WebClient } from '@slack/web-api';
 import * as blockUtils from '@utils/blockParser';
 import * as utils from '@utils/util';
 import { Types } from '@tribeplatform/gql-client';
-import { Logger } from '@tribeplatform/node-logger';
+import IncomingWebhookModel from '@/models/incomingWebhook.model';
+
+// One logger for the module: every node-logger instance registers its own process
+// 'uncaughtException' handler, so creating one per SlackService leaked listeners.
+const logger = createLogger('SlackService');
+
+// Slack errors that mean the workspace token will never work again until it is reconnected.
+export const INACTIVE_TOKEN_ERRORS = ['token_revoked', 'account_inactive', 'invalid_auth'];
+
+// Tokens that Slack rejected permanently, so we stop calling Slack (and logging) for them.
+// Kept in memory only: reconnecting a workspace issues a new token.
+const inactiveTokens = new Set<string>();
+
+const tokenKey = (token: string) => createHash('sha256').update(token || '').digest('hex');
+
+export const getSlackErrorCode = (error: any): string | undefined =>
+  error?.code === ErrorCode.PlatformError ? error?.data?.error : undefined;
+
+export const isInactiveTokenError = (error: any): boolean => INACTIVE_TOKEN_ERRORS.includes(getSlackErrorCode(error));
+
+export const resetInactiveTokens = () => inactiveTokens.clear();
 
 export interface UpdateMessagePayload {
   event: string;
@@ -23,10 +44,25 @@ export interface PostMessageArguments {
 }
 class SlackService {
   private slackClient: WebClient;
-  private readonly logger: Logger
+  private readonly token: string;
+  private readonly tokenKey: string;
   constructor(token: string) {
     this.slackClient = new WebClient(token);
-    this.logger = createLogger(SlackService.name)
+    this.token = token;
+    this.tokenKey = tokenKey(token);
+  }
+  /**
+   * Flags every connection that uses this token, so it is skipped on every pod and after restarts.
+   * Reconnecting the workspace creates a new connection with a new token, which is not flagged.
+   */
+  private async markTokenInactive(reason: string, networkId?: string) {
+    try {
+      const filter: Record<string, string> = { accessToken: this.token };
+      if (networkId) filter.networkId = networkId;
+      await IncomingWebhookModel.updateMany(filter, { $set: { tokenInactiveAt: new Date(), tokenInactiveReason: reason } });
+    } catch (err) {
+      logger.error(err);
+    }
   }
   public async postMessage({ text, blocks, channel, username, image }: PostMessageArguments) {
     if (!Array.isArray(blocks)) blocks = [blocks];
@@ -47,6 +83,7 @@ class SlackService {
     });
   }
   public async sendSlackMessage(channel: string, payload: UpdateMessagePayload) {
+    if (inactiveTokens.has(this.tokenKey)) return;
     try {
       const blocks = [];
       const sentences = [];
@@ -163,9 +200,19 @@ class SlackService {
       }
 
       const image = (payload.network?.favicon as Types.Image)?.urls?.small;
-      return this.postMessage({ text, blocks, channel, username: payload.network?.name, image });
+      return await this.postMessage({ text, blocks, channel, username: payload.network?.name, image });
     } catch (err) {
-      this.logger.error(err);
+      if (isInactiveTokenError(err)) {
+        inactiveTokens.add(this.tokenKey);
+        await this.markTokenInactive(getSlackErrorCode(err), payload?.network?.id);
+        logger.warn(
+          `Slack token is no longer valid (${getSlackErrorCode(err)}), skipping this workspace until it is reconnected networkId=${
+            payload?.network?.id
+          } channel=${channel}`,
+        );
+        return;
+      }
+      logger.error(err);
     }
   }
 }

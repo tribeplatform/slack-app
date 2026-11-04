@@ -64,11 +64,11 @@ class WebhookController {
       res.status(200).json(result);
     } catch (error) {
       this.logger.error(error);
-      return {
+      return res.status(200).json({
         type: input.type,
         status: 'FAILED',
         data: {},
-      };
+      });
     }
   };
 
@@ -85,7 +85,7 @@ class WebhookController {
     const webhooks = await IncomingWebhookModel.find({
       networkId,
     })
-      .select('_id channel spaceIds teamName events id userId memberId')
+      .select('_id channel spaceIds teamName events id userId memberId tokenInactiveAt')
       .lean();
 
     switch (input.context) {
@@ -234,6 +234,7 @@ class WebhookController {
     const { object } = input?.data as { object: any; networkId: string };
     const spaceId = object?.spaceId;
     const webhookUrls = webhooks
+      .filter(webhook => !webhook?.tokenInactiveAt)
       .filter(webhook => webhook?.events?.indexOf(input?.data?.name) !== -1)
       .filter(webhook => {
         if (spaceId) return !webhook.spaceIds.length || webhook.spaceIds.indexOf(spaceId) !== -1;
@@ -318,7 +319,12 @@ class WebhookController {
         const post = await tribeClient.query({name: 'post', args: {variables: {id: postId}, fields: {repliedTos: {}}}})
         payload.post = post;
       }
-      if (!skip) webhookUrls.forEach(({ accessToken, channelId }) => new SlackService(accessToken).sendSlackMessage(channelId, payload));
+      if (!skip) {
+        // Not awaited on purpose; never let a Slack failure become an unhandled rejection (which exits the process).
+        webhookUrls.forEach(({ accessToken, channelId }) =>
+          new SlackService(accessToken).sendSlackMessage(channelId, payload).catch(err => this.logger.error(err)),
+        );
+      }
     }
     return {
       type: input.type,
